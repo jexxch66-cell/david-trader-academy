@@ -1,26 +1,99 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paleta principal */
+  --green:    #00FF87;
+  --green2:   #00CC6A;
+  --green-dim: rgba(0,255,135,0.12);
+  --orange:     #FF6B00;
+  --orange-dim: rgba(255,107,0,0.12);
+  --black:    #060606;
+  --black2:   #0F0F0F;
+  --black3:   #161616;
+  --white:    #FFFFFF;
+  --muted:    rgba(255,255,255,0.45);
+  --border:   rgba(0,255,135,0.15);
+  --border2:  rgba(255,255,255,0.08);
+
+  /* Tipografía */
+  --ff-display: 'Space Grotesk', sans-serif;
+  --ff-body:    'Inter', sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: auto; /* Lenis maneja el scroll */
+}
+
+html, body {
+  background: var(--black);
+  font-family: var(--ff-body);
+  color: var(--white);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── ANIMACIONES GLOBALES ───────────────────────────────────────── */
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── MOBILE ─────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  /* hero más compacto */
+  section:first-of-type {
+    padding-top: 64px !important;
+    padding-bottom: 40px !important;
+  }
+
+  /* stats: 3 columnas apretadas → reducir font */
+  .stat-num { font-size: 22px !important; }
+
+  /* CTA full width en móvil */
+  a[href*="hotmart"] {
+    width: 100% !important;
+    padding: 18px 24px !important;
+    font-size: 14px !important;
+  }
+
+  /* subtítulo más legible */
+  .hero-sub {
+    font-size: 15px !important;
+    max-width: 100% !important;
+  }
+
+  /* garantía card padding */
+  .guarantee-card {
+    padding: 28px 20px !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (max-width: 360px) {
+  /* stats en móvil muy pequeño — col única */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .stats-grid > div {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  }
 }
+
+/* ── SCROLLBAR ──────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: var(--green2); border-radius: 2px; }
