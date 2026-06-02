@@ -358,6 +358,117 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   )
 }
 
+// ─── SEED REVIEWS ─────────────────────────────────────────────────────────────
+const SEED_REVIEWS = [
+  { name: 'Carlos M.',   country: 'Colombia',  initials: 'CM', color: '#00FF87', stars: 5,
+    review: 'Llevaba año y medio operando a pérdida sin entender qué fallaba. Con este curso aprendí a leer la estructura del mercado y mis resultados cambiaron por completo en pocas semanas. El módulo de Price Action es oro puro.' },
+  { name: 'Valentina R.', country: 'México',   initials: 'VR', color: '#00D4FF', stars: 5,
+    review: 'Lo que más me impactó fue el módulo de gestión de riesgo. Antes arriesgaba el 20% de la cuenta sin pensarlo. Ahora tengo reglas claras y he crecido de forma consistente mes a mes.' },
+  { name: 'Andrés P.',  country: 'Venezuela',  initials: 'AP', color: '#FFB800', stars: 5,
+    review: 'Las sesiones en vivo valen todo. Ver a David analizar el mercado en tiempo real mientras explica cada decisión no lo encuentras en ningún otro curso. Aprendí más en un mes que leyendo libros en un año.' },
+  { name: 'Laura G.',   country: 'Colombia',   initials: 'LG', color: '#FF6B6B', stars: 4,
+    review: 'Al principio me costó entender el Price Action, no voy a mentir. Pero David tiene mucha paciencia y el material está bien organizado. Le pondría 5 si hubiera más contenido sobre criptos, pero igual lo recomiendo sin duda.' },
+  { name: 'Miguel T.',  country: 'Perú',       initials: 'MT', color: '#B45FFF', stars: 5,
+    review: 'Tenía conocimientos técnicos pero perdía por mis emociones. El módulo de psicología del trading fue exactamente lo que necesitaba. Hoy opero con una calma y disciplina que antes simplemente no tenía.' },
+  { name: 'Daniela V.', country: 'Ecuador',    initials: 'DV', color: '#00FF87', stars: 5,
+    review: 'Soy abogada y no tenía ningún conocimiento previo de mercados. El curso me llevó de cero a operar con confianza en 3 meses. David explica todo muy claro y el acompañamiento es real, no solo videos grabados.' },
+]
+
+// ─── STAR SELECTOR ────────────────────────────────────────────────────────────
+function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0)
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {[1, 2, 3, 4, 5].map(s => (
+        <button key={s} type="button" onClick={() => onChange(s)}
+          onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(0)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+          <svg width="28" height="28" viewBox="0 0 24 24"
+            fill={(hover || value) >= s ? '#00FF87' : 'rgba(255,255,255,0.1)'} style={{ transition: 'fill 0.15s' }}>
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── REVIEW FORM ──────────────────────────────────────────────────────────────
+function ReviewForm() {
+  const [name, setName]     = useState('')
+  const [country, setCountry] = useState('')
+  const [rating, setRating] = useState(0)
+  const [text, setText]     = useState('')
+  const [status, setStatus] = useState<'idle'|'sending'|'success'|'error'>('idle')
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!rating) return
+    setStatus('sending')
+    try {
+      const res = await fetch('/api/submit-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, country, rating, review: text }),
+      })
+      if (!res.ok) throw new Error()
+      setStatus('success')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  if (status === 'success') return (
+    <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+      <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(0,255,135,0.1)', border: '1.5px solid rgba(0,255,135,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00FF87" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <p style={{ fontFamily: 'var(--ff-display)', fontSize: 18, fontWeight: 700, color: 'var(--green)', marginBottom: 8 }}>¡Gracias por tu reseña!</p>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>La revisaremos y la publicaremos pronto.</p>
+    </div>
+  )
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 10, padding: '11px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+  }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)',
+    display: 'block', marginBottom: 8, textTransform: 'uppercase',
+  }
+
+  return (
+    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={labelStyle}>Nombre</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: María R." required style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>País</label>
+          <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Ej: Colombia" required style={inputStyle} />
+        </div>
+      </div>
+      <div>
+        <label style={labelStyle}>Calificación</label>
+        <StarSelector value={rating} onChange={setRating} />
+        {!rating && status !== 'idle' && <p style={{ fontSize: 11, color: '#FF6B6B', marginTop: 4 }}>Selecciona una calificación</p>}
+      </div>
+      <div>
+        <label style={labelStyle}>Tu experiencia</label>
+        <textarea value={text} onChange={e => setText(e.target.value)} required rows={4}
+          placeholder="Cuéntanos cómo fue tu experiencia con el curso..."
+          style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }} />
+      </div>
+      <button type="submit" disabled={status === 'sending' || !rating}
+        style={{ background: 'linear-gradient(135deg,#00FF87,#00D96A)', color: '#000', padding: '14px', borderRadius: 10, border: 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', opacity: (status === 'sending' || !rating) ? 0.55 : 1, transition: 'opacity 0.2s' }}>
+        {status === 'sending' ? 'Enviando...' : 'Enviar reseña →'}
+      </button>
+      {status === 'error' && <p style={{ textAlign: 'center', fontSize: 13, color: '#FF6B6B' }}>Algo salió mal. Por favor intenta de nuevo.</p>}
+    </form>
+  )
+}
+
 // ─── CTA BUTTON ───────────────────────────────────────────────────────────────
 function CtaButton({ text, fullWidth = false }: { text: string; fullWidth?: boolean }) {
   const [hov, setHov] = useState(false)
@@ -394,6 +505,12 @@ function CtaButton({ text, fullWidth = false }: { text: string; fullWidth?: bool
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [navSolid, setNavSolid] = useState(false)
+  const [dynamicReviews, setDynamicReviews] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/reviews').then(r => r.json()).then(setDynamicReviews).catch(() => {})
+  }, [])
+
   useEffect(() => {
     const h = () => setNavSolid(window.scrollY > 60)
     window.addEventListener('scroll', h, { passive: true })
@@ -753,14 +870,12 @@ export default function Home() {
           </Reveal>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-            {[
-              { name: 'Carlos M.', country: 'Colombia', initials: 'CM', color: '#00FF87', review: 'Llevaba casi 2 años perdiendo dinero en el mercado sin entender por qué. Con este curso cambié completamente mi forma de operar. La sección de Price Action me abrió los ojos.', stars: 5 },
-              { name: 'Valentina R.', country: 'México', initials: 'VR', color: '#00D4FF', review: 'El módulo de gestión de riesgo me salvó la cuenta. Antes operaba sin ningún control, ahora cada operación tiene su plan. David explica todo con mucha claridad y paciencia.', stars: 5 },
-              { name: 'Andrés P.', country: 'Venezuela', initials: 'AP', color: '#FFB800', review: 'Las sesiones en vivo son lo mejor del curso. Ver cómo toma decisiones reales en el mercado mientras explica el razonamiento no tiene precio. Superó mis expectativas.', stars: 5 },
-              { name: 'Laura G.', country: 'Colombia', initials: 'LG', color: '#FF6B6B', review: 'Empecé desde cero, sin saber absolutamente nada de trading. En 3 meses ya estaba operando con confianza. El contenido es muy práctico y el acompañamiento constante.', stars: 5 },
-              { name: 'Miguel T.', country: 'Perú', initials: 'MT', color: '#B45FFF', review: 'El módulo de psicología del trading me cambió la perspectiva. Me di cuenta que el problema no era el mercado, era mi mentalidad. Ahora opero con mucha más disciplina.', stars: 5 },
-              { name: 'Daniela V.', country: 'Ecuador', initials: 'DV', color: '#00FF87', review: 'Vale cada peso invertido. La comunidad, el acompañamiento y las estrategias son de nivel profesional. Ya recuperé la inversión del curso en mis primeras semanas operando.', stars: 5 },
-            ].map((t, i) => (
+            {[...SEED_REVIEWS, ...dynamicReviews.map((r: any) => ({
+              name: r.name, country: r.country,
+              initials: r.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
+              color: ['#00FF87','#00D4FF','#FFB800','#FF6B6B','#B45FFF'][r.name.charCodeAt(0) % 5],
+              stars: r.rating, review: r.review,
+            }))].map((t, i) => (
               <Reveal key={i} delay={i * 0.07}>
                 <div
                   className="benefit-card"
@@ -833,6 +948,19 @@ export default function Home() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>98%</p>
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recomiendan el curso</p>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Formulario de reseña */}
+          <Reveal delay={0.5}>
+            <div style={{ marginTop: 56, maxWidth: 560, margin: '56px auto 0' }}>
+              <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(0,255,135,0.15)', borderRadius: 20, padding: 'clamp(28px,4vw,44px)' }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}>¿Ya tomaste el curso?</p>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', textAlign: 'center', marginBottom: 28, lineHeight: 1.65 }}>
+                  Comparte tu experiencia y ayuda a otros estudiantes a tomar la mejor decisión
+                </p>
+                <ReviewForm />
               </div>
             </div>
           </Reveal>
