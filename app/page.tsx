@@ -289,14 +289,19 @@ function PriceCounter() {
 // ─── VIDEO PLAYER ─────────────────────────────────────────────────────────────
 function VideoPlayer() {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [playing, setPlaying] = useState(false)
+  const [muted, setMuted] = useState(true)
 
-  const handlePlay = () => {
+  useEffect(() => {
     const video = videoRef.current
     if (!video) return
-    video.muted = false
     video.play().catch(() => {})
-    setPlaying(true)
+  }, [])
+
+  const toggleMute = () => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = !video.muted
+    setMuted(video.muted)
   }
 
   return (
@@ -311,33 +316,41 @@ function VideoPlayer() {
         <video
           ref={videoRef}
           src="/video_web.mp4"
-          loop playsInline muted preload="auto"
-          controls={playing}
+          loop playsInline muted autoPlay preload="auto"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        {!playing && (
-          <button
-            onClick={handlePlay}
-            style={{
-              position: 'absolute', inset: 0, width: '100%', height: '100%',
-              border: 'none', cursor: 'pointer', padding: 0, background: 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <div style={{
-              position: 'relative', zIndex: 1,
-              width: 72, height: 72, borderRadius: '50%',
-              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-              border: '2px solid rgba(0,255,135,0.8)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 32px rgba(0,255,135,0.5)',
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#00FF87">
-                <path d="M8 5v14l11-7z"/>
+        {/* Botón sonido — siempre visible, pulsa mientras está silenciado */}
+        <button
+          onClick={toggleMute}
+          style={{
+            position: 'absolute', bottom: 14, right: 14, zIndex: 3,
+            display: 'flex', alignItems: 'center', gap: 7,
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)',
+            border: `1.5px solid ${muted ? 'rgba(0,255,135,0.7)' : 'rgba(255,255,255,0.3)'}`,
+            borderRadius: 100, padding: '8px 16px',
+            cursor: 'pointer', transition: 'all 0.3s',
+            animation: muted ? 'ctaGlow 2s ease-in-out infinite' : 'none',
+            boxShadow: muted ? '0 0 24px rgba(0,255,135,0.4)' : 'none',
+          }}
+        >
+          {muted ? (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
               </svg>
-            </div>
-          </button>
-        )}
+              <span style={{ color: '#00FF87', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Activar sonido</span>
+            </>
+          ) : (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>Silenciar</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   )
@@ -855,6 +868,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════ PRECIO ══════════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,100px) 20px', background: 'var(--black)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255,107,0,0.06), transparent)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', marginLeft: -240, marginTop: -240, width: 480, height: 480, borderRadius: '50%', border: '1px solid rgba(0,255,135,0.08)', animation: 'pulseRing 4.5s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', marginLeft: -340, marginTop: -340, width: 680, height: 680, borderRadius: '50%', border: '1px solid rgba(0,255,135,0.05)', animation: 'pulseRing 4.5s ease-in-out infinite', animationDelay: '2.25s', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 560, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <Reveal>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 20 }}>Únete ahora</p>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,255,135,0.07)', border: '1px solid rgba(0,255,135,0.22)', borderRadius: 100, padding: '8px 20px', marginBottom: 32, fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)' }}>
+              <span style={{ fontSize: 9 }}>◆</span> Precio de lanzamiento · Plazas limitadas
+            </div>
+            <PriceCounter />
+            <div style={{ marginTop: 36, marginBottom: 20 }}>
+              <CtaButton text="Quiero acceder ahora →" />
+            </div>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em' }}>Pago 100% seguro · Acceso inmediato</p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ══════════════ TESTIMONIOS ══════════════ */}
       <section style={{ padding: 'clamp(56px,8vw,100px) 20px', background: 'var(--black2)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(rgba(0,255,135,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -927,27 +960,27 @@ export default function Home() {
 
           {/* Indicador de confianza */}
           <Reveal delay={0.4}>
-            <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>4.9</p>
+            <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'clamp(12px,3vw,32px)', flexWrap: 'nowrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(22px,5vw,32px)', fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>4.9</p>
                 <div style={{ display: 'flex', gap: 2 }}>
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill="#00FF87">
+                    <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill="#00FF87">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                   ))}
                 </div>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Calificación promedio</p>
+                <p style={{ fontSize: 'clamp(9px,2vw,11px)', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>Calificación</p>
               </div>
-              <div style={{ width: 1, height: 60, background: 'rgba(255,255,255,0.06)' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>150+</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Estudiantes formados</p>
+              <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(22px,5vw,32px)', fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>150+</p>
+                <p style={{ fontSize: 'clamp(9px,2vw,11px)', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>Estudiantes</p>
               </div>
-              <div style={{ width: 1, height: 60, background: 'rgba(255,255,255,0.06)' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>98%</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recomiendan el curso</p>
+              <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(22px,5vw,32px)', fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>98%</p>
+                <p style={{ fontSize: 'clamp(9px,2vw,11px)', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>Recomiendan</p>
               </div>
             </div>
           </Reveal>
@@ -967,24 +1000,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════════ PRECIO ══════════════ */}
-      <section style={{ padding: 'clamp(56px,8vw,100px) 20px', background: 'var(--black)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255,107,0,0.06), transparent)', pointerEvents: 'none' }} />
-        {/* anillos decorativos */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', marginLeft: -240, marginTop: -240, width: 480, height: 480, borderRadius: '50%', border: '1px solid rgba(0,255,135,0.08)', animation: 'pulseRing 4.5s ease-in-out infinite', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: '50%', left: '50%', marginLeft: -340, marginTop: -340, width: 680, height: 680, borderRadius: '50%', border: '1px solid rgba(0,255,135,0.05)', animation: 'pulseRing 4.5s ease-in-out infinite', animationDelay: '2.25s', pointerEvents: 'none' }} />
-
-        <div style={{ maxWidth: 560, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+      {/* CTA FINAL */}
+      <section style={{ padding: 'clamp(48px,7vw,80px) 20px', background: 'var(--black)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 60% at 50% 100%, rgba(0,255,135,0.07), transparent)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
           <Reveal>
-            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 20 }}>Únete ahora</p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,255,135,0.07)', border: '1px solid rgba(0,255,135,0.22)', borderRadius: 100, padding: '8px 20px', marginBottom: 32, fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)' }}>
-              <span style={{ fontSize: 9 }}>◆</span> Precio de lanzamiento · Plazas limitadas
-            </div>
-            <PriceCounter />
-            <div style={{ marginTop: 36, marginBottom: 20 }}>
-              <CtaButton text="Quiero acceder ahora →" />
-            </div>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em' }}>Pago 100% seguro · Acceso inmediato</p>
+            <p style={{ fontSize: 'clamp(20px,4vw,32px)', fontFamily: 'var(--ff-display)', fontWeight: 700, marginBottom: 28 }}>
+              ¿Listo para operar con método real?
+            </p>
+            <CtaButton text="Acceder al curso →" />
+            <p style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.06em' }}>Pago 100% seguro · Acceso inmediato · Plataforma Hotmart</p>
           </Reveal>
         </div>
       </section>
