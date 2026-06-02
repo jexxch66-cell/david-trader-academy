@@ -154,7 +154,7 @@ export default function AdminPage() {
       }}>
         <TradingIcon />
         <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>
-          Admin · Reseñas
+          Panel Admin
         </span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
           <span style={{ fontSize: 12, color: '#FFB800' }}>⏳ {counts.pending}</span>
