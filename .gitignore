@@ -45,3 +45,5 @@ next-env.d.ts
 brief-cliente.html
 public/brief-cliente.html
 public/video.mp4
+
+.vercel

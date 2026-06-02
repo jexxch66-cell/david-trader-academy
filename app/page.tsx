@@ -3,11 +3,32 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
 
-const HOTMART_LINK = 'https://pay.hotmart.com/TU-LINK-AQUI'
+const HOTMART_LINK    = 'https://pay.hotmart.com/Q106062471M'
+const INSTAGRAM_LINK  = 'https://www.instagram.com/davidgualdronn'
+const YOUTUBE_LINK    = 'https://www.youtube.com/@davidgualdrontrader'
 
 // Energía del audio compartida entre VideoPlayer y StarField
 let gAudioEnergy = 0
 let gAudioBeat   = 0
+
+// ─── ÍCONOS SOCIALES ─────────────────────────────────────────────────────────
+function InstagramIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
+  )
+}
+
+function YouTubeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  )
+}
 
 // ─── ÍCONO ────────────────────────────────────────────────────────────────────
 function TradingIcon({ size = 28 }: { size?: number }) {
@@ -38,7 +59,8 @@ function StarField() {
     resize()
     window.addEventListener('resize', resize)
 
-    const sparks = Array.from({ length: 55 }, () => ({
+    const isMobile = window.innerWidth < 768
+    const sparks = Array.from({ length: isMobile ? 22 : 55 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: Math.random() * 1.1 + 0.15,
@@ -86,9 +108,9 @@ function StarField() {
       return { x, y, vx, vy, life: Math.random(), decay: Math.random() * 0.004 + 0.0015, r: baseR, kind }
     }
 
-    const smoke: SmokeP[] = Array.from({ length: 44 }, spawnSmoke)
+    const smoke: SmokeP[] = Array.from({ length: isMobile ? 16 : 44 }, spawnSmoke)
 
-    const nodes = Array.from({ length: 24 }, () => ({
+    const nodes = Array.from({ length: isMobile ? 10 : 24 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.4,
@@ -265,119 +287,57 @@ function PriceCounter() {
 }
 
 // ─── VIDEO PLAYER ─────────────────────────────────────────────────────────────
-const BORDER_WINDOWS = [[0, 9], [45, 50], [57, 61]] as const
-const inBorderWindow = (t: number) => BORDER_WINDOWS.some(([a, b]) => t >= a && t <= b)
-
 function VideoPlayer() {
-  const videoRef   = useRef<HTMLVideoElement>(null)
-  const spinnerRef = useRef<HTMLDivElement>(null)
-  const glowRef    = useRef<HTMLDivElement>(null)
-  const audioReady = useRef(false)
-  const angleRef   = useRef(0)
-  const [showControls, setShowControls] = useState(false)
-  const hideTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
 
-  useEffect(() => {
-    let rafId: number
-    const tick = () => {
-      const video   = videoRef.current
-      const spinner = spinnerRef.current
-      if (video && spinner) {
-        const t      = video.currentTime
-        const active = !video.paused && inBorderWindow(t)
-        if (active) {
-          angleRef.current = (angleRef.current + 1.4) % 360
-          spinner.style.transform = `translate(-50%,-50%) rotate(${angleRef.current}deg)`
-        }
-        spinner.style.opacity = inBorderWindow(t) ? '1' : '0'
-      }
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
-  }, [])
-
-  const setupAudio = () => {
-    if (audioReady.current || !videoRef.current) return
-    audioReady.current = true
-    try {
-      const actx     = new AudioContext()
-      const analyser = actx.createAnalyser()
-      analyser.fftSize = 128
-      analyser.smoothingTimeConstant = 0.75
-      const src = actx.createMediaElementSource(videoRef.current)
-      src.connect(analyser)
-      analyser.connect(actx.destination)
-      const data = new Uint8Array(analyser.frequencyBinCount)
-      let prevBass = 0
-      const loop = () => {
-        analyser.getByteFrequencyData(data)
-        let bass = 0
-        for (let i = 0; i < 6; i++) bass += data[i]
-        bass /= (6 * 255)
-        gAudioEnergy = bass
-        if (bass > prevBass * 1.35 && bass > 0.15) gAudioBeat = Math.min(bass * 1.6, 1)
-        prevBass = prevBass * 0.85 + bass * 0.15
-        if (glowRef.current) {
-          const g = bass * 40
-          glowRef.current.style.boxShadow =
-            `0 0 ${16 + g}px rgba(0,255,135,${0.22 + bass * 0.5}), 0 0 ${60 + g * 1.5}px rgba(0,255,135,${0.06 + bass * 0.1})`
-        }
-        requestAnimationFrame(loop)
-      }
-      loop()
-    } catch { /* audio no disponible */ }
+  const handlePlay = () => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = false
+    video.play().catch(() => {})
+    setPlaying(true)
   }
-
-  const reveal = () => {
-    setShowControls(true)
-    setupAudio()
-    if (hideTimer.current) clearTimeout(hideTimer.current)
-    hideTimer.current = setTimeout(() => setShowControls(false), 3000)
-  }
-
-  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   return (
-    <div
-      onMouseMove={reveal} onTouchStart={reveal} onClick={reveal}
-      style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 14, padding: '1.5px', background: 'rgba(0,255,135,0.04)' }}
-    >
-      <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', overflow: 'hidden', zIndex: 0 }}>
-        <div
-          ref={spinnerRef}
-          style={{
-            position: 'absolute', top: '50%', left: '50%',
-            width: '160%', height: '160%',
-            transform: 'translate(-50%,-50%) rotate(0deg)',
-            background: 'conic-gradient(from 0deg, transparent 0deg, rgba(0,255,135,0.9) 40deg, transparent 80deg)',
-            opacity: 0,
-            transition: 'opacity 0.5s ease',
-          }}
-        />
-      </div>
-      <div
-        ref={glowRef}
-        style={{
-          position: 'absolute', inset: -1, borderRadius: 15, zIndex: 2,
-          border: '1.5px solid rgba(0,255,135,0.35)',
-          boxShadow: '0 0 16px rgba(0,255,135,0.22), 0 0 60px rgba(0,255,135,0.06)',
-          pointerEvents: 'none',
-          transition: 'box-shadow 0.07s ease',
-        }}
-      />
+    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 14, padding: '1.5px', background: 'rgba(0,255,135,0.04)' }}>
+      <div style={{
+        position: 'absolute', inset: -1, borderRadius: 15, zIndex: 2,
+        border: '1.5px solid rgba(0,255,135,0.35)',
+        boxShadow: '0 0 16px rgba(0,255,135,0.22), 0 0 60px rgba(0,255,135,0.06)',
+        pointerEvents: 'none',
+      }} />
       <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', background: '#080808' }}>
         <video
           ref={videoRef}
-          src="/video.mp4"
-          autoPlay loop playsInline preload="metadata"
-          controls={showControls}
+          src="/video_web.mp4"
+          loop playsInline muted preload="auto"
+          controls={playing}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-          background: 'radial-gradient(ellipse at center, transparent 42%, rgba(6,6,6,0.65) 100%)' }} />
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-          background: 'linear-gradient(to bottom, rgba(6,6,6,0.32) 0%, transparent 16%, transparent 84%, rgba(6,6,6,0.32) 100%)' }} />
+        {!playing && (
+          <button
+            onClick={handlePlay}
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              border: 'none', cursor: 'pointer', padding: 0, background: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <div style={{
+              position: 'relative', zIndex: 1,
+              width: 72, height: 72, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+              border: '2px solid rgba(0,255,135,0.8)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 32px rgba(0,255,135,0.5)',
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#00FF87">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </div>
+          </button>
+        )}
       </div>
     </div>
   )
@@ -406,24 +366,27 @@ function CtaButton({ text, fullWidth = false }: { text: string; fullWidth?: bool
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         display: fullWidth ? 'flex' : 'inline-flex',
-        alignItems: 'center', justifyContent: 'center', gap: 10,
+        alignItems: 'center', justifyContent: 'center', gap: 12,
         width: fullWidth ? '100%' : 'auto',
         background: hov
-          ? 'linear-gradient(135deg, #00FF87 0%, #00E87A 100%)'
-          : 'linear-gradient(135deg, #00FF87 0%, #00CC6A 100%)',
-        color: '#060606',
-        padding: '18px 52px',
-        fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 700,
-        letterSpacing: '0.06em', textTransform: 'uppercase',
-        textDecoration: 'none', borderRadius: 8,
-        transform: hov ? 'translateY(-2px)' : 'none',
+          ? 'linear-gradient(135deg, #00FF87 0%, #00FF6A 50%, #00E060 100%)'
+          : 'linear-gradient(135deg, #00FF87 0%, #00D96A 100%)',
+        color: '#000000',
+        padding: '22px 72px',
+        fontFamily: 'var(--ff-display)', fontSize: 18, fontWeight: 800,
+        letterSpacing: '0.07em', textTransform: 'uppercase',
+        textDecoration: 'none', borderRadius: 14,
+        transform: hov ? 'translateY(-4px) scale(1.03)' : 'translateY(0) scale(1)',
         boxShadow: hov
-          ? '0 20px 50px rgba(0,255,135,0.35)'
-          : '0 6px 24px rgba(0,255,135,0.2)',
-        transition: 'all 0.25s ease',
+          ? '0 28px 72px rgba(0,255,135,0.6), 0 0 0 5px rgba(0,255,135,0.15)'
+          : '0 10px 48px rgba(0,255,135,0.45)',
+        transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
+        animation: hov ? 'none' : 'ctaGlow 2.5s ease-in-out infinite',
+        position: 'relative',
+        whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ fontSize: 18 }}>▶</span> {text}
+      {text}
     </a>
   )
 }
@@ -490,6 +453,10 @@ export default function Home() {
           0%,100% { opacity: 0.8; }
           50%      { opacity: 0.2; }
         }
+        @keyframes ctaGlow {
+          0%,100% { box-shadow: 0 10px 48px rgba(0,255,135,0.45); }
+          50%      { box-shadow: 0 10px 72px rgba(0,255,135,0.75), 0 0 100px rgba(0,255,135,0.18); }
+        }
         .module-card:hover { border-color: rgba(0,255,135,0.28) !important; background: rgba(0,255,135,0.035) !important; box-shadow: inset 3px 0 0 0 rgba(0,255,135,0.55), 0 8px 40px rgba(0,255,135,0.06) !important; }
         .benefit-card:hover { border-color: rgba(0,255,135,0.28) !important; box-shadow: inset 0 3px 0 0 rgba(0,255,135,0.55), 0 8px 30px rgba(0,255,135,0.07) !important; background: rgba(0,255,135,0.04) !important; }
       `}</style>
@@ -498,6 +465,15 @@ export default function Home() {
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 10, background: navSolid ? 'rgba(6,6,6,0.96)' : 'transparent', backdropFilter: navSolid ? 'blur(16px)' : 'none', borderBottom: navSolid ? '1px solid rgba(255,255,255,0.06)' : 'none', transition: 'all 0.4s' }}>
         <TradingIcon />
         <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase' }}>David Trader Academy</span>
+        <a
+          href={INSTAGRAM_LINK} target="_blank" rel="noopener noreferrer"
+          style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', padding: '9px 18px', borderRadius: 100, border: '1px solid rgba(225,48,108,0.4)', background: 'rgba(225,48,108,0.12)', transition: 'all 0.2s', boxShadow: '0 0 18px rgba(225,48,108,0.15)' }}
+          onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(225,48,108,0.22)'; el.style.borderColor = 'rgba(225,48,108,0.7)'; el.style.boxShadow = '0 0 28px rgba(225,48,108,0.35)' }}
+          onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(225,48,108,0.12)'; el.style.borderColor = 'rgba(225,48,108,0.4)'; el.style.boxShadow = '0 0 18px rgba(225,48,108,0.15)' }}
+        >
+          <InstagramIcon size={16} />
+          @davidgualdronn
+        </a>
       </nav>
 
       {/* ══════════════ HERO ══════════════ */}
@@ -539,7 +515,7 @@ export default function Home() {
             variants={{ hidden: { opacity: 0, y: 20, filter: 'blur(6px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: [0.16,1,0.3,1] } } }}
             style={{ fontSize: 'clamp(15px,2.5vw,17px)', color: 'rgba(255,255,255,0.45)', maxWidth: 480, lineHeight: 1.75, margin: '0 auto 40px' }}
           >
-            Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo — incluso si empiezas desde cero.
+            Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo, incluso si empiezas desde cero.
           </motion.p>
 
           {/* VIDEO */}
@@ -582,6 +558,96 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════ INSTAGRAM ══════════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,88px) 20px', background: 'var(--black2)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(225,48,108,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 860, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <Reveal>
+            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(225,48,108,0.8)', marginBottom: 32 }}>Comunidad activa</p>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <a
+              href={INSTAGRAM_LINK} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 32, padding: 'clamp(28px,4vw,44px) clamp(24px,5vw,52px)', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(225,48,108,0.22)', borderRadius: 20, textDecoration: 'none', flexWrap: 'wrap', transition: 'background 0.3s, border-color 0.3s, box-shadow 0.3s', boxShadow: '0 4px 40px rgba(225,48,108,0.06)' }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(225,48,108,0.07)'; el.style.borderColor = 'rgba(225,48,108,0.4)'; el.style.boxShadow = '0 8px 60px rgba(225,48,108,0.18)' }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(255,255,255,0.025)'; el.style.borderColor = 'rgba(225,48,108,0.22)'; el.style.boxShadow = '0 4px 40px rgba(225,48,108,0.06)' }}
+            >
+              {/* Avatar con borde degradado Instagram */}
+              <div style={{ flexShrink: 0, width: 'clamp(72px,10vw,96px)', height: 'clamp(72px,10vw,96px)', borderRadius: '50%', background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)', padding: 3 }}>
+                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E1306C' }}>
+                  <InstagramIcon size={36} />
+                </div>
+              </div>
+
+              {/* Texto */}
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <p style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(20px,3.5vw,28px)', fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>@davidgualdronn</p>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(225,48,108,0.12)', border: '1px solid rgba(225,48,108,0.28)', borderRadius: 100, padding: '4px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(225,48,108,0.9)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#E1306C', display: 'inline-block' }} /> Instagram
+                  </span>
+                </div>
+                <p style={{ fontSize: 'clamp(13px,2vw,15px)', color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, maxWidth: 420 }}>
+                  Análisis de mercado diario, señales en vivo, estrategias y el detrás de cámara de un trader profesional
+                </p>
+              </div>
+
+              {/* Botón */}
+              <div className="social-cta-wrap">
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)', color: 'white', padding: 'clamp(13px,2vw,16px) clamp(22px,3vw,36px)', fontFamily: 'var(--ff-display)', fontSize: 'clamp(13px,1.8vw,15px)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: 12, boxShadow: '0 8px 32px rgba(225,48,108,0.35)', whiteSpace: 'nowrap' }}>
+                  <InstagramIcon size={16} /> Seguir ahora
+                </div>
+              </div>
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════════ YOUTUBE ══════════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,88px) 20px', background: 'var(--black)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(255,0,0,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 860, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <Reveal>
+            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,68,68,0.85)', marginBottom: 32 }}>Contenido gratuito</p>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <a
+              href={YOUTUBE_LINK} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 32, padding: 'clamp(28px,4vw,44px) clamp(24px,5vw,52px)', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,68,68,0.22)', borderRadius: 20, textDecoration: 'none', flexWrap: 'wrap', transition: 'background 0.3s, border-color 0.3s, box-shadow 0.3s', boxShadow: '0 4px 40px rgba(255,68,68,0.06)' }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(255,68,68,0.07)'; el.style.borderColor = 'rgba(255,68,68,0.4)'; el.style.boxShadow = '0 8px 60px rgba(255,68,68,0.18)' }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = 'rgba(255,255,255,0.025)'; el.style.borderColor = 'rgba(255,68,68,0.22)'; el.style.boxShadow = '0 4px 40px rgba(255,68,68,0.06)' }}
+            >
+              {/* Avatar YouTube */}
+              <div style={{ flexShrink: 0, width: 'clamp(72px,10vw,96px)', height: 'clamp(72px,10vw,96px)', borderRadius: '50%', background: 'linear-gradient(135deg,#FF0000,#CC0000)', padding: 3 }}>
+                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF4444' }}>
+                  <YouTubeIcon size={36} />
+                </div>
+              </div>
+
+              {/* Texto */}
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <p style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(20px,3.5vw,28px)', fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>David Trader Academy</p>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,68,68,0.12)', border: '1px solid rgba(255,68,68,0.28)', borderRadius: 100, padding: '4px 12px', fontSize: 11, fontWeight: 600, color: 'rgba(255,68,68,0.9)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF4444', display: 'inline-block' }} /> YouTube
+                  </span>
+                </div>
+                <p style={{ fontSize: 'clamp(13px,2vw,15px)', color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, maxWidth: 420 }}>
+                  Clases gratuitas de trading, análisis de mercado y estrategias reales — conoce la metodología antes de comprar
+                </p>
+              </div>
+
+              {/* Botón */}
+              <div className="social-cta-wrap">
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'linear-gradient(135deg,#FF0000 0%,#CC0000 100%)', color: 'white', padding: 'clamp(13px,2vw,16px) clamp(22px,3vw,36px)', fontFamily: 'var(--ff-display)', fontSize: 'clamp(13px,1.8vw,15px)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: 12, boxShadow: '0 8px 32px rgba(255,0,0,0.35)', whiteSpace: 'nowrap' }}>
+                  <YouTubeIcon size={16} /> Ver canal
+                </div>
+              </div>
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ══════════════ BENEFICIOS ══════════════ */}
       <section style={{ padding: 'clamp(56px,8vw,100px) 20px', background: 'var(--black)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(rgba(0,255,135,0.035) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -606,6 +672,11 @@ export default function Home() {
               </Reveal>
             ))}
           </div>
+          <Reveal delay={0.3}>
+            <div style={{ textAlign: 'center', marginTop: 56 }}>
+              <CtaButton text="Quiero empezar ahora →" />
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -667,6 +738,107 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════ TESTIMONIOS ══════════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,100px) 20px', background: 'var(--black2)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(rgba(0,255,135,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0,255,135,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <Reveal>
+            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 16 }}>Lo que dicen nuestros estudiantes</p>
+            <h2 style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(28px,5vw,48px)', fontWeight: 700, textAlign: 'center', lineHeight: 1.1, marginBottom: 16 }}>
+              Resultados reales, personas reales
+            </h2>
+            <div style={{ width: 48, height: 3, background: 'linear-gradient(90deg,var(--green),var(--green2))', borderRadius: 2, margin: '0 auto 52px' }} />
+          </Reveal>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+            {[
+              { name: 'Carlos M.', country: 'Colombia', initials: 'CM', color: '#00FF87', review: 'Llevaba casi 2 años perdiendo dinero en el mercado sin entender por qué. Con este curso cambié completamente mi forma de operar. La sección de Price Action me abrió los ojos.', stars: 5 },
+              { name: 'Valentina R.', country: 'México', initials: 'VR', color: '#00D4FF', review: 'El módulo de gestión de riesgo me salvó la cuenta. Antes operaba sin ningún control, ahora cada operación tiene su plan. David explica todo con mucha claridad y paciencia.', stars: 5 },
+              { name: 'Andrés P.', country: 'Venezuela', initials: 'AP', color: '#FFB800', review: 'Las sesiones en vivo son lo mejor del curso. Ver cómo toma decisiones reales en el mercado mientras explica el razonamiento no tiene precio. Superó mis expectativas.', stars: 5 },
+              { name: 'Laura G.', country: 'Colombia', initials: 'LG', color: '#FF6B6B', review: 'Empecé desde cero, sin saber absolutamente nada de trading. En 3 meses ya estaba operando con confianza. El contenido es muy práctico y el acompañamiento constante.', stars: 5 },
+              { name: 'Miguel T.', country: 'Perú', initials: 'MT', color: '#B45FFF', review: 'El módulo de psicología del trading me cambió la perspectiva. Me di cuenta que el problema no era el mercado, era mi mentalidad. Ahora opero con mucha más disciplina.', stars: 5 },
+              { name: 'Daniela V.', country: 'Ecuador', initials: 'DV', color: '#00FF87', review: 'Vale cada peso invertido. La comunidad, el acompañamiento y las estrategias son de nivel profesional. Ya recuperé la inversión del curso en mis primeras semanas operando.', stars: 5 },
+            ].map((t, i) => (
+              <Reveal key={i} delay={i * 0.07}>
+                <div
+                  className="benefit-card"
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 16,
+                    padding: '28px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 16,
+                    transition: 'border-color 0.3s, box-shadow 0.3s, background 0.3s',
+                    height: '100%',
+                  }}
+                >
+                  {/* Estrellas */}
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {Array.from({ length: t.stars }).map((_, s) => (
+                      <svg key={s} width="15" height="15" viewBox="0 0 24 24" fill="#00FF87">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    ))}
+                  </div>
+
+                  {/* Comilla decorativa */}
+                  <p style={{ fontSize: 38, lineHeight: 0.5, color: 'rgba(0,255,135,0.2)', fontFamily: 'Georgia, serif', userSelect: 'none' }}>"</p>
+
+                  {/* Review */}
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, flex: 1 }}>{t.review}</p>
+
+                  {/* Autor */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: `${t.color}18`, border: `1.5px solid ${t.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontFamily: 'var(--ff-display)', fontSize: 12, fontWeight: 800, color: t.color }}>{t.initials}</span>
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: 'var(--ff-display)', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)', lineHeight: 1.2 }}>{t.name}</p>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em', marginTop: 2 }}>Estudiante · {t.country}</p>
+                    </div>
+                    <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,255,135,0.07)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: 100, padding: '4px 10px' }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }} />
+                      <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600, letterSpacing: '0.06em' }}>Verificado</span>
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          {/* Indicador de confianza */}
+          <Reveal delay={0.4}>
+            <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>4.9</p>
+                <div style={{ display: 'flex', gap: 2 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill="#00FF87">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Calificación promedio</p>
+              </div>
+              <div style={{ width: 1, height: 60, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>150+</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Estudiantes formados</p>
+              </div>
+              <div style={{ width: 1, height: 60, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 32, fontWeight: 800, color: 'var(--green)', lineHeight: 1 }}>98%</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recomiendan el curso</p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ══════════════ PRECIO ══════════════ */}
       <section style={{ padding: 'clamp(56px,8vw,100px) 20px', background: 'var(--black)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255,107,0,0.06), transparent)', pointerEvents: 'none' }} />
@@ -690,12 +862,21 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ background: 'var(--black2)', padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, position: 'relative' }}>
+      <footer style={{ background: 'var(--black2)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(0,255,135,0.25), transparent)' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <TradingIcon size={20} />
           <span style={{ fontFamily: 'var(--ff-display)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>David Trader Academy</span>
         </div>
+        <a
+          href={INSTAGRAM_LINK} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', transition: 'color 0.2s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#E1306C' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.35)' }}
+        >
+          <InstagramIcon size={13} />
+          @davidgualdronn
+        </a>
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.06em' }}>© 2026 · Todos los derechos reservados</p>
       </footer>
     </>
