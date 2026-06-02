@@ -288,8 +288,8 @@ function PriceCounter() {
 
 // ─── VIDEO PLAYER ─────────────────────────────────────────────────────────────
 function VideoPlayer() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [muted, setMuted] = useState(true)
+  const videoRef  = useRef<HTMLVideoElement>(null)
+  const [activated, setActivated] = useState(false)
 
   useEffect(() => {
     const video = videoRef.current
@@ -297,11 +297,11 @@ function VideoPlayer() {
     video.play().catch(() => {})
   }, [])
 
-  const toggleMute = () => {
+  const activateSound = () => {
     const video = videoRef.current
     if (!video) return
-    video.muted = !video.muted
-    setMuted(video.muted)
+    video.muted = false
+    setActivated(true)
   }
 
   return (
@@ -317,40 +317,31 @@ function VideoPlayer() {
           ref={videoRef}
           src="/video_web.mp4"
           loop playsInline muted autoPlay preload="auto"
+          controls={activated}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        {/* Botón sonido — siempre visible, pulsa mientras está silenciado */}
-        <button
-          onClick={toggleMute}
-          style={{
-            position: 'absolute', bottom: 14, right: 14, zIndex: 3,
-            display: 'flex', alignItems: 'center', gap: 7,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)',
-            border: `1.5px solid ${muted ? 'rgba(0,255,135,0.7)' : 'rgba(255,255,255,0.3)'}`,
-            borderRadius: 100, padding: '8px 16px',
-            cursor: 'pointer', transition: 'all 0.3s',
-            animation: muted ? 'ctaGlow 2s ease-in-out infinite' : 'none',
-            boxShadow: muted ? '0 0 24px rgba(0,255,135,0.4)' : 'none',
-          }}
-        >
-          {muted ? (
-            <>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
-              </svg>
-              <span style={{ color: '#00FF87', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Activar sonido</span>
-            </>
-          ) : (
-            <>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              </svg>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>Silenciar</span>
-            </>
-          )}
-        </button>
+        {/* Botón sonido — desaparece al activar, con él aparecen los controles nativos */}
+        {!activated && (
+          <button
+            onClick={activateSound}
+            style={{
+              position: 'absolute', bottom: 14, right: 14, zIndex: 3,
+              display: 'flex', alignItems: 'center', gap: 7,
+              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)',
+              border: '1.5px solid rgba(0,255,135,0.7)',
+              borderRadius: 100, padding: '8px 16px',
+              cursor: 'pointer',
+              animation: 'ctaGlow 2s ease-in-out infinite',
+              boxShadow: '0 0 24px rgba(0,255,135,0.4)',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+            <span style={{ color: '#00FF87', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Activar sonido</span>
+          </button>
+        )}
       </div>
     </div>
   )
@@ -373,17 +364,17 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 // ─── SEED REVIEWS ─────────────────────────────────────────────────────────────
 const SEED_REVIEWS = [
-  { name: 'Carlos M.',   country: 'Colombia',  initials: 'CM', color: '#00FF87', stars: 5,
+  { name: 'Carlos Mendoza',   country: 'Colombia', initials: 'CM', color: '#00FF87', stars: 4,
     review: 'Llevaba año y medio operando a pérdida sin entender qué fallaba. Con este curso aprendí a leer la estructura del mercado y mis resultados cambiaron por completo en pocas semanas. El módulo de Price Action es oro puro.' },
-  { name: 'Valentina R.', country: 'México',   initials: 'VR', color: '#00D4FF', stars: 5,
-    review: 'Lo que más me impactó fue el módulo de gestión de riesgo. Antes arriesgaba el 20% de la cuenta sin pensarlo. Ahora tengo reglas claras y he crecido de forma consistente mes a mes.' },
-  { name: 'Andrés P.',  country: 'Venezuela',  initials: 'AP', color: '#FFB800', stars: 5,
+  { name: 'Valentina Ríos',   country: 'México',   initials: 'VR', color: '#00D4FF', stars: 5,
+    review: 'Lo que más me impactó fue el módulo de gestión de riesgo. Antes arriesgaba el 20% de la cuenta sin pensarlo. Ahora tengo reglas claras y he crecido de forma consistente mes a mes. Totalmente recomendado.' },
+  { name: 'Andrés Parra',     country: 'Colombia', initials: 'AP', color: '#FFB800', stars: 5,
     review: 'Las sesiones en vivo valen todo. Ver a David analizar el mercado en tiempo real mientras explica cada decisión no lo encuentras en ningún otro curso. Aprendí más en un mes que leyendo libros en un año.' },
-  { name: 'Laura G.',   country: 'Colombia',   initials: 'LG', color: '#FF6B6B', stars: 4,
-    review: 'Al principio me costó entender el Price Action, no voy a mentir. Pero David tiene mucha paciencia y el material está bien organizado. Le pondría 5 si hubiera más contenido sobre criptos, pero igual lo recomiendo sin duda.' },
-  { name: 'Miguel T.',  country: 'Perú',       initials: 'MT', color: '#B45FFF', stars: 5,
+  { name: 'Laura Gómez',      country: 'Panamá',   initials: 'LG', color: '#FF6B6B', stars: 4,
+    review: 'Al principio me costó entender el Price Action, no voy a mentir. Pero David tiene mucha paciencia y el material está muy bien organizado. Le daría 5 estrellas si hubiera más contenido sobre criptos, pero igual lo recomiendo.' },
+  { name: 'Miguel Torres',    country: 'México',   initials: 'MT', color: '#B45FFF', stars: 4,
     review: 'Tenía conocimientos técnicos pero perdía por mis emociones. El módulo de psicología del trading fue exactamente lo que necesitaba. Hoy opero con una calma y disciplina que antes simplemente no tenía.' },
-  { name: 'Daniela V.', country: 'Ecuador',    initials: 'DV', color: '#00FF87', stars: 5,
+  { name: 'Daniela Vargas',   country: 'Colombia', initials: 'DV', color: '#00FF87', stars: 5,
     review: 'Soy abogada y no tenía ningún conocimiento previo de mercados. El curso me llevó de cero a operar con confianza en 3 meses. David explica todo muy claro y el acompañamiento es real, no solo videos grabados.' },
 ]
 
@@ -895,9 +886,8 @@ export default function Home() {
 
         <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <Reveal>
-            <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 16 }}>Lo que dicen nuestros estudiantes</p>
-            <h2 style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(28px,5vw,48px)', fontWeight: 700, textAlign: 'center', lineHeight: 1.1, marginBottom: 16 }}>
-              Resultados reales, personas reales
+            <h2 style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(22px,4vw,36px)', fontWeight: 700, textAlign: 'center', lineHeight: 1.15, marginBottom: 16, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'white' }}>
+              Lo que dicen nuestros estudiantes
             </h2>
             <div style={{ width: 48, height: 3, background: 'linear-gradient(90deg,var(--green),var(--green2))', borderRadius: 2, margin: '0 auto 52px' }} />
           </Reveal>
@@ -926,8 +916,8 @@ export default function Home() {
                 >
                   {/* Estrellas */}
                   <div style={{ display: 'flex', gap: 3 }}>
-                    {Array.from({ length: t.stars }).map((_, s) => (
-                      <svg key={s} width="15" height="15" viewBox="0 0 24 24" fill="#00FF87">
+                    {Array.from({ length: 5 }).map((_, s) => (
+                      <svg key={s} width="15" height="15" viewBox="0 0 24 24" fill={s < t.stars ? '#00FF87' : 'rgba(255,255,255,0.12)'}>
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                       </svg>
                     ))}
