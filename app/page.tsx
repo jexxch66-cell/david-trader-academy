@@ -288,20 +288,14 @@ function PriceCounter() {
 
 // ─── VIDEO PLAYER ─────────────────────────────────────────────────────────────
 function VideoPlayer() {
-  const videoRef  = useRef<HTMLVideoElement>(null)
-  const [activated, setActivated] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
 
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    video.play().catch(() => {})
-  }, [])
-
-  const activateSound = () => {
+  const handlePlay = () => {
     const video = videoRef.current
     if (!video) return
     video.muted = false
-    setActivated(true)
+    video.play().catch(() => {})
   }
 
   return (
@@ -317,28 +311,27 @@ function VideoPlayer() {
           ref={videoRef}
           src="/video_web.mp4"
           loop playsInline muted autoPlay preload="auto"
-          controls={activated}
+          onPlay={() => setPlaying(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        {!activated && (
-          <button
-            onClick={activateSound}
-            style={{
-              position: 'absolute', bottom: 14, right: 14, zIndex: 3,
-              display: 'flex', alignItems: 'center', gap: 7,
-              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)',
-              border: '1.5px solid rgba(0,255,135,0.7)',
-              borderRadius: 100, padding: '8px 16px',
-              cursor: 'pointer',
+        {!playing && (
+          <button onClick={handlePlay} style={{
+            position: 'absolute', inset: 0, zIndex: 3,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.35)', border: 'none', cursor: 'pointer',
+            width: '100%',
+          }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: 'linear-gradient(135deg,#00FF87,#00D96A)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 48px rgba(0,255,135,0.65), 0 0 0 12px rgba(0,255,135,0.12)',
               animation: 'ctaGlow 2s ease-in-out infinite',
-              boxShadow: '0 0 24px rgba(0,255,135,0.4)',
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-              <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
-            </svg>
-            <span style={{ color: '#00FF87', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Activar sonido</span>
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#000">
+                <polygon points="6,3 20,12 6,21"/>
+              </svg>
+            </div>
           </button>
         )}
       </div>
