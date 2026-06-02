@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type Review = {
   id: string
@@ -11,16 +11,30 @@ type Review = {
   createdAt: string
 }
 
+type SiteContent = {
+  price: string
+  headline1: string
+  headline2: string
+  subtitle: string
+}
+
+const DEFAULTS: SiteContent = {
+  price:     '199',
+  headline1: 'Opera los mercados',
+  headline2: 'con método real',
+  subtitle:  'Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo, incluso si empiezas desde cero.',
+}
+
 function TradingIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-      <polyline points="2,24 8,14 13,18 20,8 26,12 30,6" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="24,6 30,6 30,12" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+      <polyline points="2,24 8,14 13,18 20,8 26,12 30,6" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="24,6 30,6 30,12" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
-function StarRow({ rating }: { rating: number }) {
+function Stars({ rating }: { rating: number }) {
   return (
     <div style={{ display: 'flex', gap: 2 }}>
       {Array.from({ length: 5 }).map((_, i) => (
@@ -32,23 +46,31 @@ function StarRow({ rating }: { rating: number }) {
   )
 }
 
-const STATUS_LABEL = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada' }
-const STATUS_COLOR = {
+const SC = {
   pending:  { bg: 'rgba(255,184,0,0.1)',   border: 'rgba(255,184,0,0.3)',   text: '#FFB800' },
   approved: { bg: 'rgba(0,255,135,0.1)',   border: 'rgba(0,255,135,0.3)',   text: '#00FF87' },
   rejected: { bg: 'rgba(255,107,107,0.1)', border: 'rgba(255,107,107,0.3)', text: '#FF6B6B' },
 }
+const SL = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada' }
 
-type Tab = 'pending' | 'approved' | 'rejected' | 'all'
+type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content'
 
 export default function AdminPage() {
-  const [password, setPassword] = useState('')
-  const [authed, setAuthed]     = useState(false)
-  const [reviews, setReviews]   = useState<Review[]>([])
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [tab, setTab]           = useState<Tab>('pending')
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [password, setPassword]   = useState('')
+  const [authed, setAuthed]       = useState(false)
+  const [reviews, setReviews]     = useState<Review[]>([])
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [tab, setTab]             = useState<Tab>('pending')
+  const [busy, setBusy]           = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText]   = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const [content, setContent]       = useState<SiteContent>(DEFAULTS)
+  const [contentDraft, setContentDraft] = useState<SiteContent>(DEFAULTS)
+  const [contentSaving, setContentSaving] = useState(false)
+  const [contentSaved, setContentSaved]   = useState(false)
 
   const fetchReviews = async (pw: string) => {
     setLoading(true); setError('')
@@ -59,83 +81,95 @@ export default function AdminPage() {
     setAuthed(true)
   }
 
-  const update = async (id: string, status: 'approved' | 'rejected') => {
-    setActionLoading(id)
+  useEffect(() => {
+    if (!authed) return
+    fetch('/api/content').then(r => r.json()).then((d: SiteContent) => {
+      setContent(d); setContentDraft(d)
+    }).catch(() => {})
+  }, [authed])
+
+  const updateReview = async (id: string, payload: { status?: 'approved' | 'rejected'; review?: string }) => {
+    setBusy(id)
     await fetch('/api/admin', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
-      body: JSON.stringify({ id, status }),
+      body: JSON.stringify({ id, ...payload }),
     })
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r))
-    setActionLoading(null)
+    if (payload.status !== undefined) {
+      setReviews(prev => prev.map(r => r.id === id ? { ...r, status: payload.status! } : r))
+    }
+    if (payload.review !== undefined) {
+      setReviews(prev => prev.map(r => r.id === id ? { ...r, review: payload.review! } : r))
+      setEditingId(null)
+    }
+    setBusy(null)
+  }
+
+  const deleteReview = async (id: string) => {
+    setBusy(id)
+    await fetch('/api/admin', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+      body: JSON.stringify({ id }),
+    })
+    setReviews(prev => prev.filter(r => r.id !== id))
+    setDeleteConfirm(null)
+    setBusy(null)
+  }
+
+  const saveContent = async () => {
+    setContentSaving(true)
+    await fetch('/api/content', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+      body: JSON.stringify(contentDraft),
+    })
+    setContent(contentDraft)
+    setContentSaving(false)
+    setContentSaved(true)
+    setTimeout(() => setContentSaved(false), 2500)
   }
 
   const counts = {
-    all:      reviews.length,
+    all: reviews.length,
     pending:  reviews.filter(r => r.status === 'pending').length,
     approved: reviews.filter(r => r.status === 'approved').length,
     rejected: reviews.filter(r => r.status === 'rejected').length,
   }
 
-  const visible = tab === 'all' ? reviews : reviews.filter(r => r.status === tab)
+  const visible = tab === 'all' ? reviews
+    : tab === 'content' ? []
+    : reviews.filter(r => r.status === tab)
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+    padding: '11px 14px', color: 'white', fontSize: 14,
+    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  }
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em',
+    textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8,
+  }
 
   if (!authed) return (
-    <div style={{
-      minHeight: '100vh', background: '#060606',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 20, fontFamily: 'var(--ff-body)',
-    }}>
+    <div style={{ minHeight: '100vh', background: '#060606', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--ff-body)' }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
-        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 40 }}>
           <TradingIcon />
-          <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>
-            David Trader Academy
-          </span>
+          <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>David Trader Academy</span>
         </div>
-
-        {/* Card */}
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(0,255,135,0.15)',
-          borderRadius: 20, padding: 40,
-          boxShadow: '0 0 60px rgba(0,255,135,0.05)',
-        }}>
-          <p style={{ fontFamily: 'var(--ff-display)', fontSize: 22, fontWeight: 700, color: 'white', marginBottom: 6, textAlign: 'center' }}>
-            Panel Admin
-          </p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 32, textAlign: 'center', letterSpacing: '0.04em' }}>
-            Gestión de reseñas
-          </p>
-
-          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
-            Contraseña
-          </label>
-          <input
-            type="password" placeholder="••••••••" value={password}
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,255,135,0.15)', borderRadius: 20, padding: 40, boxShadow: '0 0 60px rgba(0,255,135,0.05)' }}>
+          <p style={{ fontFamily: 'var(--ff-display)', fontSize: 22, fontWeight: 700, color: 'white', marginBottom: 6, textAlign: 'center' }}>Panel Admin</p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 32, textAlign: 'center' }}>Gestión de reseñas y contenido</p>
+          <label style={labelStyle}>Contraseña</label>
+          <input type="password" placeholder="••••••••" value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fetchReviews(password)}
-            style={{
-              width: '100%', background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-              padding: '12px 16px', color: 'white', fontSize: 15,
-              outline: 'none', marginBottom: 16, boxSizing: 'border-box',
-              fontFamily: 'inherit',
-            }}
-          />
-          {error && (
-            <p style={{ color: '#FF6B6B', fontSize: 13, marginBottom: 14, textAlign: 'center' }}>{error}</p>
-          )}
-          <button
-            onClick={() => fetchReviews(password)} disabled={loading}
-            style={{
-              width: '100%', background: 'linear-gradient(135deg,#00FF87,#00D96A)',
-              color: '#000', padding: '13px', borderRadius: 10, border: 'none',
-              fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800,
-              letterSpacing: '0.05em', cursor: 'pointer',
-              opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s',
-            }}
-          >
+            style={{ ...inputStyle, marginBottom: 16 }} />
+          {error && <p style={{ color: '#FF6B6B', fontSize: 13, marginBottom: 14, textAlign: 'center' }}>{error}</p>}
+          <button onClick={() => fetchReviews(password)} disabled={loading}
+            style={{ width: '100%', background: 'linear-gradient(135deg,#00FF87,#00D96A)', color: '#000', padding: 13, borderRadius: 10, border: 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
             {loading ? 'Cargando...' : 'Entrar →'}
           </button>
         </div>
@@ -146,16 +180,9 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#060606', color: 'white', fontFamily: 'var(--ff-body)' }}>
       {/* Header */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(6,6,6,0.95)', backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(0,255,135,0.1)',
-        padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12,
-      }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(6,6,6,0.95)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,255,135,0.1)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <TradingIcon />
-        <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>
-          Panel Admin
-        </span>
+        <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Panel Admin</span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
           <span style={{ fontSize: 12, color: '#FFB800' }}>⏳ {counts.pending}</span>
           <span style={{ fontSize: 12, color: '#00FF87' }}>✓ {counts.approved}</span>
@@ -163,141 +190,212 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 28, flexWrap: 'wrap' }}>
-          {(['pending', 'all', 'approved', 'rejected'] as Tab[]).map(t => {
-            const labels = { pending: 'Pendientes', all: 'Todas', approved: 'Aprobadas', rejected: 'Rechazadas' }
-            const active = tab === t
-            return (
-              <button key={t} onClick={() => setTab(t)} style={{
-                padding: '8px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--ff-display)', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
-                background: active ? 'linear-gradient(135deg,#00FF87,#00D96A)' : 'rgba(255,255,255,0.05)',
-                color: active ? '#000' : 'rgba(255,255,255,0.5)',
-                transition: 'all 0.2s',
-              }}>
-                {labels[t]} {counts[t] > 0 && `(${counts[t]})`}
-              </button>
-            )
-          })}
+          {([
+            { key: 'pending',  label: 'Pendientes',  count: counts.pending },
+            { key: 'all',      label: 'Todas',        count: counts.all },
+            { key: 'approved', label: 'Aprobadas',    count: counts.approved },
+            { key: 'rejected', label: 'Rechazadas',   count: counts.rejected },
+            { key: 'content',  label: '✦ Contenido',  count: null },
+          ] as { key: Tab; label: string; count: number | null }[]).map(({ key, label, count }) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding: '8px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--ff-display)', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+              background: tab === key
+                ? key === 'content' ? 'linear-gradient(135deg,#FFB800,#FF8C00)' : 'linear-gradient(135deg,#00FF87,#00D96A)'
+                : 'rgba(255,255,255,0.05)',
+              color: tab === key ? '#000' : 'rgba(255,255,255,0.5)',
+              transition: 'all 0.2s',
+            }}>
+              {label}{count !== null && count > 0 ? ` (${count})` : ''}
+            </button>
+          ))}
         </div>
 
-        {/* Reviews */}
-        {visible.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>
-            No hay reseñas en esta categoría.
+        {/* ─── TAB CONTENIDO ─── */}
+        {tab === 'content' && (
+          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,184,0,0.2)', borderRadius: 16, padding: 32 }}>
+            <p style={{ fontFamily: 'var(--ff-display)', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Editar contenido de la página</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 28, lineHeight: 1.6 }}>
+              Los cambios se aplican en tiempo real en la landing page.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Precio */}
+              <div>
+                <label style={labelStyle}>Precio de lanzamiento (USD)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontFamily: 'var(--ff-display)', fontSize: 22, fontWeight: 700, color: 'var(--green)' }}>$</span>
+                  <input
+                    type="number" value={contentDraft.price}
+                    onChange={e => setContentDraft(d => ({ ...d, price: e.target.value }))}
+                    style={{ ...inputStyle, width: 140, fontSize: 22, fontFamily: 'var(--ff-display)', fontWeight: 700 }}
+                  />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>(precio tachado siempre es $499)</span>
+                </div>
+              </div>
+
+              {/* Headline línea 1 */}
+              <div>
+                <label style={labelStyle}>Título — Línea 1 (blanco)</label>
+                <input value={contentDraft.headline1}
+                  onChange={e => setContentDraft(d => ({ ...d, headline1: e.target.value }))}
+                  style={inputStyle} />
+              </div>
+
+              {/* Headline línea 2 */}
+              <div>
+                <label style={labelStyle}>Título — Línea 2 (verde)</label>
+                <input value={contentDraft.headline2}
+                  onChange={e => setContentDraft(d => ({ ...d, headline2: e.target.value }))}
+                  style={{ ...inputStyle, color: '#00FF87' }} />
+              </div>
+
+              {/* Subtítulo */}
+              <div>
+                <label style={labelStyle}>Subtítulo</label>
+                <textarea value={contentDraft.subtitle} rows={3}
+                  onChange={e => setContentDraft(d => ({ ...d, subtitle: e.target.value }))}
+                  style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+              </div>
+
+              {/* Preview */}
+              <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '20px 24px' }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Preview</p>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(22px,4vw,36px)', fontWeight: 700, lineHeight: 1.1, marginBottom: 8 }}>
+                  {contentDraft.headline1}<br />
+                  <span style={{ color: '#00FF87' }}>{contentDraft.headline2}</span>
+                </p>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 12 }}>{contentDraft.subtitle}</p>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 28, fontWeight: 700, color: '#00FF87' }}>USD ${contentDraft.price}</p>
+              </div>
+
+              <button onClick={saveContent} disabled={contentSaving}
+                style={{ background: contentSaved ? 'rgba(0,255,135,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: contentSaved ? '#00FF87' : '#000', padding: '13px 32px', borderRadius: 10, border: contentSaved ? '1px solid rgba(0,255,135,0.4)' : 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', width: 'fit-content', transition: 'all 0.3s', opacity: contentSaving ? 0.6 : 1 }}>
+                {contentSaving ? 'Guardando...' : contentSaved ? '✓ Guardado' : 'Guardar cambios →'}
+              </button>
+            </div>
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {visible.map(r => {
-            const sc = STATUS_COLOR[r.status]
-            return (
-              <div key={r.id} style={{
-                background: 'rgba(255,255,255,0.025)',
-                border: `1px solid ${r.status === 'approved' ? 'rgba(0,255,135,0.2)' : r.status === 'rejected' ? 'rgba(255,107,107,0.18)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: 14, padding: '22px 24px',
-                transition: 'border-color 0.2s',
-              }}>
-                {/* Top row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <p style={{ fontFamily: 'var(--ff-display)', fontWeight: 700, fontSize: 15, color: 'white' }}>
-                        {r.name}
-                      </p>
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
-                        {r.country}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <StarRow rating={r.rating} />
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
-                        {new Date(r.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                  </div>
-                  <span style={{
-                    padding: '5px 14px', borderRadius: 100, fontSize: 11, fontWeight: 700,
-                    letterSpacing: '0.08em', textTransform: 'uppercase',
-                    background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text,
-                    flexShrink: 0,
-                  }}>
-                    {STATUS_LABEL[r.status]}
-                  </span>
-                </div>
-
-                {/* Texto */}
-                <p style={{
-                  fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75,
-                  marginBottom: r.status === 'pending' ? 18 : 0,
-                  borderLeft: '2px solid rgba(0,255,135,0.15)',
-                  paddingLeft: 14,
-                }}>
-                  {r.review}
-                </p>
-
-                {/* Acciones solo para pendientes */}
-                {r.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => update(r.id, 'approved')}
-                      disabled={actionLoading === r.id}
-                      style={{
-                        padding: '9px 24px',
-                        background: 'rgba(0,255,135,0.08)',
-                        border: '1px solid rgba(0,255,135,0.3)',
-                        borderRadius: 8, color: '#00FF87',
-                        fontFamily: 'var(--ff-display)', fontWeight: 700,
-                        fontSize: 13, cursor: 'pointer', letterSpacing: '0.04em',
-                        opacity: actionLoading === r.id ? 0.5 : 1,
-                        transition: 'background 0.2s, opacity 0.2s',
-                      }}
-                    >
-                      ✓ Aprobar
-                    </button>
-                    <button
-                      onClick={() => update(r.id, 'rejected')}
-                      disabled={actionLoading === r.id}
-                      style={{
-                        padding: '9px 24px',
-                        background: 'rgba(255,107,107,0.07)',
-                        border: '1px solid rgba(255,107,107,0.25)',
-                        borderRadius: 8, color: '#FF6B6B',
-                        fontFamily: 'var(--ff-display)', fontWeight: 700,
-                        fontSize: 13, cursor: 'pointer', letterSpacing: '0.04em',
-                        opacity: actionLoading === r.id ? 0.5 : 1,
-                        transition: 'background 0.2s, opacity 0.2s',
-                      }}
-                    >
-                      ✕ Rechazar
-                    </button>
-                  </div>
-                )}
-
-                {/* Opción de revertir si ya fue procesada */}
-                {r.status !== 'pending' && (
-                  <button
-                    onClick={() => update(r.id, r.status === 'approved' ? 'rejected' : 'approved')}
-                    disabled={actionLoading === r.id}
-                    style={{
-                      marginTop: 14, padding: '7px 18px',
-                      background: 'transparent',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 8, color: 'rgba(255,255,255,0.3)',
-                      fontSize: 12, cursor: 'pointer',
-                      opacity: actionLoading === r.id ? 0.5 : 1,
-                      transition: 'color 0.2s, border-color 0.2s',
-                    }}
-                  >
-                    {r.status === 'approved' ? '✕ Rechazar' : '✓ Aprobar'}
-                  </button>
-                )}
+        {/* ─── TAB RESEÑAS ─── */}
+        {tab !== 'content' && (
+          <>
+            {visible.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '80px 20px', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>
+                No hay reseñas en esta categoría.
               </div>
-            )
-          })}
-        </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {visible.map(r => {
+                const sc = SC[r.status]
+                const isEditing = editingId === r.id
+                const isDeleting = deleteConfirm === r.id
+
+                return (
+                  <div key={r.id} style={{
+                    background: 'rgba(255,255,255,0.025)',
+                    border: `1px solid ${r.status === 'approved' ? 'rgba(0,255,135,0.2)' : r.status === 'rejected' ? 'rgba(255,107,107,0.18)' : 'rgba(255,255,255,0.07)'}`,
+                    borderRadius: 14, padding: '22px 24px',
+                  }}>
+                    {/* Top */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <p style={{ fontFamily: 'var(--ff-display)', fontWeight: 700, fontSize: 15 }}>{r.name}</p>
+                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{r.country}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <Stars rating={r.rating} />
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                            {new Date(r.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{ padding: '5px 14px', borderRadius: 100, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, flexShrink: 0 }}>
+                        {SL[r.status]}
+                      </span>
+                    </div>
+
+                    {/* Texto / modo edición */}
+                    {isEditing ? (
+                      <div style={{ marginBottom: 16 }}>
+                        <textarea value={editText} rows={4}
+                          onChange={e => setEditText(e.target.value)}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,255,135,0.3)', borderRadius: 10, padding: '11px 14px', color: 'white', fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65, boxSizing: 'border-box' }} />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                          <button onClick={() => updateReview(r.id, { review: editText })} disabled={busy === r.id}
+                            style={{ padding: '8px 20px', background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.35)', borderRadius: 8, color: '#00FF87', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                            {busy === r.id ? '...' : '✓ Guardar'}
+                          </button>
+                          <button onClick={() => setEditingId(null)}
+                            style={{ padding: '8px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: 16, borderLeft: '2px solid rgba(0,255,135,0.15)', paddingLeft: 14 }}>
+                        {r.review}
+                      </p>
+                    )}
+
+                    {/* Confirmación eliminar */}
+                    {isDeleting && (
+                      <div style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 10, padding: '14px 18px', marginBottom: 14 }}>
+                        <p style={{ fontSize: 13, color: '#FF6B6B', marginBottom: 12 }}>¿Eliminar esta reseña permanentemente?</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => deleteReview(r.id)} disabled={busy === r.id}
+                            style={{ padding: '8px 20px', background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.4)', borderRadius: 8, color: '#FF6B6B', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                            {busy === r.id ? '...' : 'Sí, eliminar'}
+                          </button>
+                          <button onClick={() => setDeleteConfirm(null)}
+                            style={{ padding: '8px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Acciones */}
+                    {!isEditing && !isDeleting && (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {r.status === 'pending' && (
+                          <>
+                            <button onClick={() => updateReview(r.id, { status: 'approved' })} disabled={busy === r.id}
+                              style={{ padding: '9px 22px', background: 'rgba(0,255,135,0.08)', border: '1px solid rgba(0,255,135,0.3)', borderRadius: 8, color: '#00FF87', fontFamily: 'var(--ff-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: busy === r.id ? 0.5 : 1 }}>
+                              ✓ Aprobar
+                            </button>
+                            <button onClick={() => updateReview(r.id, { status: 'rejected' })} disabled={busy === r.id}
+                              style={{ padding: '9px 22px', background: 'rgba(255,107,107,0.07)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 8, color: '#FF6B6B', fontFamily: 'var(--ff-display)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: busy === r.id ? 0.5 : 1 }}>
+                              ✕ Rechazar
+                            </button>
+                          </>
+                        )}
+                        {r.status !== 'pending' && (
+                          <button onClick={() => updateReview(r.id, { status: r.status === 'approved' ? 'rejected' : 'approved' })} disabled={busy === r.id}
+                            style={{ padding: '7px 18px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer' }}>
+                            {r.status === 'approved' ? '✕ Rechazar' : '✓ Aprobar'}
+                          </button>
+                        )}
+                        <button onClick={() => { setEditingId(r.id); setEditText(r.review) }}
+                          style={{ padding: '7px 18px', background: 'rgba(255,184,0,0.07)', border: '1px solid rgba(255,184,0,0.2)', borderRadius: 8, color: '#FFB800', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                          ✎ Editar
+                        </button>
+                        <button onClick={() => setDeleteConfirm(r.id)}
+                          style={{ padding: '7px 18px', background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.18)', borderRadius: 8, color: '#FF6B6B', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                          🗑 Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

@@ -35,12 +35,24 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { id, status } = await req.json()
+  const { id, status, review: reviewText } = await req.json()
   const res = await kv([['GET', `review:${id}`]])
   if (!res?.[0]?.result) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
 
   const review = JSON.parse(res[0].result)
-  review.status = status
+  if (status !== undefined)     review.status = status
+  if (reviewText !== undefined) review.review = reviewText
   await kv([['SET', `review:${id}`, JSON.stringify(review)]])
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { id } = await req.json()
+  await kv([
+    ['LREM', 'review_ids', 0, id],
+    ['DEL',  `review:${id}`],
+  ])
   return NextResponse.json({ ok: true })
 }

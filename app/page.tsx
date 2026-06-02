@@ -242,11 +242,17 @@ function StarField() {
 }
 
 // ─── PRICE COUNTER ────────────────────────────────────────────────────────────
-function PriceCounter() {
+function PriceCounter({ targetPrice = 199 }: { targetPrice?: number }) {
   const [val, setVal] = useState(499)
   const [done, setDone] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const started = useRef(false)
+
+  useEffect(() => {
+    started.current = false
+    setVal(499)
+    setDone(false)
+  }, [targetPrice])
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => {
@@ -255,7 +261,7 @@ function PriceCounter() {
         const t0 = performance.now()
         const tick = (now: number) => {
           const p = Math.min((now - t0) / 1400, 1)
-          setVal(Math.round(499 + (199 - 499) * (1 - Math.pow(1 - p, 3))))
+          setVal(Math.round(499 + (targetPrice - 499) * (1 - Math.pow(1 - p, 3))))
           if (p < 1) requestAnimationFrame(tick)
           else setDone(true)
         }
@@ -264,7 +270,7 @@ function PriceCounter() {
     }, { threshold: 0.4 })
     if (ref.current) obs.observe(ref.current)
     return () => obs.disconnect()
-  }, [])
+  }, [targetPrice])
 
   return (
     <div ref={ref}>
@@ -499,12 +505,20 @@ function CtaButton({ text, fullWidth = false }: { text: string; fullWidth?: bool
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
+type SiteContent = { price: string; headline1: string; headline2: string; subtitle: string }
+const CONTENT_DEFAULTS: SiteContent = {
+  price: '199', headline1: 'Opera los mercados', headline2: 'con método real',
+  subtitle: 'Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo, incluso si empiezas desde cero.',
+}
+
 export default function Home() {
   const [navSolid, setNavSolid] = useState(false)
   const [dynamicReviews, setDynamicReviews] = useState<any[]>([])
+  const [siteContent, setSiteContent] = useState<SiteContent>(CONTENT_DEFAULTS)
 
   useEffect(() => {
     fetch('/api/reviews').then(r => r.json()).then(setDynamicReviews).catch(() => {})
+    fetch('/api/content').then(r => r.json()).then(setSiteContent).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -617,9 +631,9 @@ export default function Home() {
             variants={{ hidden: { opacity: 0, y: 40, filter: 'blur(12px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: [0.16,1,0.3,1] } } }}
             style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(38px,8.5vw,76px)', fontWeight: 700, lineHeight: 1.06, marginBottom: 18, letterSpacing: '-0.02em' }}
           >
-            Opera los mercados<br />
+            {siteContent.headline1}<br />
             <span style={{ background: 'linear-gradient(90deg,#00FF87,#00CC6A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              con método real
+              {siteContent.headline2}
             </span>
           </motion.h1>
 
@@ -628,7 +642,7 @@ export default function Home() {
             variants={{ hidden: { opacity: 0, y: 20, filter: 'blur(6px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: [0.16,1,0.3,1] } } }}
             style={{ fontSize: 'clamp(15px,2.5vw,17px)', color: 'rgba(255,255,255,0.45)', maxWidth: 480, lineHeight: 1.75, margin: '0 auto 40px' }}
           >
-            Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo, incluso si empiezas desde cero.
+            {siteContent.subtitle}
           </motion.p>
 
           {/* VIDEO */}
@@ -862,7 +876,7 @@ export default function Home() {
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,255,135,0.07)', border: '1px solid rgba(0,255,135,0.22)', borderRadius: 100, padding: '8px 20px', marginBottom: 32, fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green)' }}>
               <span style={{ fontSize: 9 }}>◆</span> Precio de lanzamiento · Plazas limitadas
             </div>
-            <PriceCounter />
+            <PriceCounter targetPrice={Number(siteContent.price)} />
             <div style={{ marginTop: 36, marginBottom: 20 }}>
               <CtaButton text="Quiero acceder ahora →" />
             </div>
