@@ -294,13 +294,18 @@ function VideoPlayer() {
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+    // Intento inmediato
     video.play().catch(() => {})
+    // Retry a 1 segundo para browsers que bloquean autoplay al cargar
+    const t = setTimeout(() => { video.play().catch(() => {}) }, 1000)
+    return () => clearTimeout(t)
   }, [])
 
   const activateSound = () => {
     const video = videoRef.current
     if (!video) return
     video.muted = false
+    video.play().catch(() => {}) // asegura que esté corriendo al activar sonido
     setActivated(true)
   }
 
