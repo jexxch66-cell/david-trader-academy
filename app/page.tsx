@@ -288,24 +288,40 @@ function PriceCounter() {
 
 // ─── VIDEO PLAYER ─────────────────────────────────────────────────────────────
 function VideoPlayer() {
-  const videoRef  = useRef<HTMLVideoElement>(null)
+  const videoRef   = useRef<HTMLVideoElement>(null)
+  const [playing,   setPlaying]   = useState(false)
   const [activated, setActivated] = useState(false)
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-    // Intento inmediato
-    video.play().catch(() => {})
-    // Retry a 1 segundo para browsers que bloquean autoplay al cargar
-    const t = setTimeout(() => { video.play().catch(() => {}) }, 1000)
-    return () => clearTimeout(t)
+
+    const onPlay  = () => setPlaying(true)
+    const onPause = () => setPlaying(false)
+    video.addEventListener('play',  onPlay)
+    video.addEventListener('pause', onPause)
+
+    const tryPlay = () => video.play().catch(() => {})
+    tryPlay()
+    const t1 = setTimeout(tryPlay, 800)
+    const t2 = setTimeout(tryPlay, 2000)
+
+    return () => {
+      clearTimeout(t1); clearTimeout(t2)
+      video.removeEventListener('play',  onPlay)
+      video.removeEventListener('pause', onPause)
+    }
   }, [])
+
+  const forcePlay = () => {
+    videoRef.current?.play().catch(() => {})
+  }
 
   const activateSound = () => {
     const video = videoRef.current
     if (!video) return
     video.muted = false
-    video.play().catch(() => {}) // asegura que esté corriendo al activar sonido
+    video.play().catch(() => {})
     setActivated(true)
   }
 
@@ -325,7 +341,16 @@ function VideoPlayer() {
           controls={activated}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        {/* Botón sonido — desaparece al activar, con él aparecen los controles nativos */}
+
+        {/* Capa transparente: captura el primer toque si autoplay fue bloqueado */}
+        {!playing && !activated && (
+          <div
+            onClick={forcePlay}
+            style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: 'pointer', background: 'transparent' }}
+          />
+        )}
+
+        {/* Botón sonido — desaparece al activar, aparecen controles nativos */}
         {!activated && (
           <button
             onClick={activateSound}
