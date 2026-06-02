@@ -527,23 +527,72 @@ function CtaButton({ text, fullWidth = false }: { text: string; fullWidth?: bool
   )
 }
 
+// ─── COUNTDOWN BANNER ────────────────────────────────────────────────────────
+function CountdownBanner({ message, endDate, badge }: { message: string; endDate: string; badge: string }) {
+  const [time, setTime] = useState({ h: 0, m: 0, s: 0, expired: false })
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = new Date(endDate).getTime() - Date.now()
+      if (diff <= 0) { setTime({ h: 0, m: 0, s: 0, expired: true }); return }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      setTime({ h, m, s, expired: false })
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [endDate])
+
+  if (time.expired) return null
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const unit = (n: number, label: string) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 38 }}>
+      <span style={{ fontFamily: 'var(--ff-display)', fontSize: 'clamp(18px,3.5vw,24px)', fontWeight: 800, lineHeight: 1, color: '#000' }}>{pad(n)}</span>
+      <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(0,0,0,0.5)', textTransform: 'uppercase', marginTop: 2 }}>{label}</span>
+    </div>
+  )
+  const sep = <span style={{ fontFamily: 'var(--ff-display)', fontSize: 22, fontWeight: 800, color: 'rgba(0,0,0,0.4)', marginTop: -4 }}>:</span>
+
+  return (
+    <div style={{ background: 'linear-gradient(90deg,#00FF87,#00D96A)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(10px,3vw,28px)', flexWrap: 'wrap', position: 'relative', zIndex: 101 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ background: 'rgba(0,0,0,0.12)', borderRadius: 100, padding: '3px 12px', fontSize: 11, fontWeight: 700, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{badge}</span>
+        <span style={{ fontSize: 'clamp(12px,2vw,14px)', fontWeight: 700, color: '#000', letterSpacing: '0.02em' }}>{message}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.35)', borderRadius: 10, padding: '6px 14px' }}>
+        {unit(time.h, 'hrs')} {sep} {unit(time.m, 'min')} {sep} {unit(time.s, 'seg')}
+      </div>
+      <a href={HOTMART_LINK} target="_blank" rel="noopener noreferrer"
+        style={{ background: '#000', color: '#00FF87', padding: '7px 18px', borderRadius: 8, fontFamily: 'var(--ff-display)', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textDecoration: 'none', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        Aprovechar →
+      </a>
+    </div>
+  )
+}
+
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 type SiteContent = { price: string; headline1: string; headline2: string; subtitle: string }
 const CONTENT_DEFAULTS: SiteContent = {
   price: '199', headline1: 'Opera los mercados', headline2: 'con método real',
   subtitle: 'Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo, incluso si empiezas desde cero.',
 }
+type BannerData = { active: boolean; message: string; endDate: string; badge: string }
 
 export default function Home() {
   const [navSolid, setNavSolid] = useState(false)
   const [dynamicReviews, setDynamicReviews] = useState<any[]>([])
   const [siteContent, setSiteContent] = useState<SiteContent>(CONTENT_DEFAULTS)
   const [seedOverrides, setSeedOverrides] = useState<any[] | null>(null)
+  const [banner, setBanner] = useState<BannerData | null>(null)
 
   useEffect(() => {
     fetch('/api/reviews').then(r => r.json()).then(setDynamicReviews).catch(() => {})
     fetch('/api/content').then(r => r.json()).then(setSiteContent).catch(() => {})
     fetch('/api/seed-reviews').then(r => r.json()).then(d => { if (d) setSeedOverrides(d) }).catch(() => {})
+    fetch('/api/banner').then(r => r.json()).then(setBanner).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -612,6 +661,11 @@ export default function Home() {
         .module-card:hover { border-color: rgba(0,255,135,0.28) !important; background: rgba(0,255,135,0.035) !important; box-shadow: inset 3px 0 0 0 rgba(0,255,135,0.55), 0 8px 40px rgba(0,255,135,0.06) !important; }
         .benefit-card:hover { border-color: rgba(0,255,135,0.28) !important; box-shadow: inset 0 3px 0 0 rgba(0,255,135,0.55), 0 8px 30px rgba(0,255,135,0.07) !important; background: rgba(0,255,135,0.04) !important; }
       `}</style>
+
+      {/* BANNER */}
+      {banner?.active && banner.endDate && (
+        <CountdownBanner message={banner.message} endDate={banner.endDate} badge={banner.badge} />
+      )}
 
       {/* NAV */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 10, background: navSolid ? 'rgba(6,6,6,0.96)' : 'transparent', backdropFilter: navSolid ? 'blur(16px)' : 'none', borderBottom: navSolid ? '1px solid rgba(255,255,255,0.06)' : 'none', transition: 'all 0.4s' }}>
