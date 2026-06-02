@@ -295,13 +295,15 @@ function PriceCounter({ targetPrice = 199 }: { targetPrice?: number }) {
 // ─── VIDEO PLAYER ─────────────────────────────────────────────────────────────
 function VideoPlayer() {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [playing, setPlaying] = useState(false)
+  const [playing, setPlaying] = useState(false)  // autoplay funcionó
+  const [soundOn, setSoundOn] = useState(false)  // usuario activó sonido
 
-  const handlePlay = () => {
+  const activate = () => {
     const video = videoRef.current
     if (!video) return
     video.muted = false
-    video.play().catch(() => {})
+    if (!playing) video.play().catch(() => {})
+    setSoundOn(true)
   }
 
   return (
@@ -318,14 +320,35 @@ function VideoPlayer() {
           src="/video_web.mp4"
           loop playsInline muted autoPlay preload="auto"
           onPlay={() => setPlaying(true)}
+          controls={soundOn}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        {!playing && (
-          <button onClick={handlePlay} style={{
+
+        {/* Desktop: video autoplaying muted → botón activar sonido */}
+        {!soundOn && playing && (
+          <button onClick={activate} style={{
+            position: 'absolute', bottom: 14, right: 14, zIndex: 3,
+            display: 'flex', alignItems: 'center', gap: 7,
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)',
+            border: '1.5px solid rgba(0,255,135,0.7)',
+            borderRadius: 100, padding: '8px 16px', cursor: 'pointer',
+            animation: 'ctaGlow 2s ease-in-out infinite',
+            boxShadow: '0 0 24px rgba(0,255,135,0.4)',
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00FF87" strokeWidth="2.2" strokeLinecap="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+            <span style={{ color: '#00FF87', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Activar sonido</span>
+          </button>
+        )}
+
+        {/* Mobile: video no arranca solo → botón verde de play */}
+        {!soundOn && !playing && (
+          <button onClick={activate} style={{
             position: 'absolute', inset: 0, zIndex: 3,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.35)', border: 'none', cursor: 'pointer',
-            width: '100%',
+            background: 'rgba(0,0,0,0.35)', border: 'none', cursor: 'pointer', width: '100%',
           }}>
             <div style={{
               width: 72, height: 72, borderRadius: '50%',
@@ -515,10 +538,12 @@ export default function Home() {
   const [navSolid, setNavSolid] = useState(false)
   const [dynamicReviews, setDynamicReviews] = useState<any[]>([])
   const [siteContent, setSiteContent] = useState<SiteContent>(CONTENT_DEFAULTS)
+  const [seedOverrides, setSeedOverrides] = useState<any[] | null>(null)
 
   useEffect(() => {
     fetch('/api/reviews').then(r => r.json()).then(setDynamicReviews).catch(() => {})
     fetch('/api/content').then(r => r.json()).then(setSiteContent).catch(() => {})
+    fetch('/api/seed-reviews').then(r => r.json()).then(d => { if (d) setSeedOverrides(d) }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -899,7 +924,7 @@ export default function Home() {
           </Reveal>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-            {[...SEED_REVIEWS, ...dynamicReviews.map((r: any) => ({
+            {[...(seedOverrides ?? SEED_REVIEWS), ...dynamicReviews.map((r: any) => ({
               name: r.name, country: r.country,
               initials: r.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
               color: ['#00FF87','#00D4FF','#FFB800','#FF6B6B','#B45FFF'][r.name.charCodeAt(0) % 5],

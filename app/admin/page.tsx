@@ -53,7 +53,18 @@ const SC = {
 }
 const SL = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada' }
 
-type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content'
+type SeedReview = { name: string; country: string; initials: string; color: string; stars: number; review: string }
+
+const SEED_DEFAULTS: SeedReview[] = [
+  { name: 'Carlos Mendoza',  country: 'Colombia', initials: 'CM', color: '#00FF87', stars: 4, review: 'Llevaba año y medio operando a pérdida sin entender qué fallaba. Con este curso aprendí a leer la estructura del mercado y mis resultados cambiaron por completo en pocas semanas. El módulo de Price Action es oro puro.' },
+  { name: 'Valentina Ríos',  country: 'México',   initials: 'VR', color: '#00D4FF', stars: 5, review: 'Lo que más me impactó fue el módulo de gestión de riesgo. Antes arriesgaba el 20% de la cuenta sin pensarlo. Ahora tengo reglas claras y he crecido de forma consistente mes a mes. Totalmente recomendado.' },
+  { name: 'Andrés Parra',    country: 'Colombia', initials: 'AP', color: '#FFB800', stars: 5, review: 'Las sesiones en vivo valen todo. Ver a David analizar el mercado en tiempo real mientras explica cada decisión no lo encuentras en ningún otro curso. Aprendí más en un mes que leyendo libros en un año.' },
+  { name: 'Laura Gómez',     country: 'Panamá',   initials: 'LG', color: '#FF6B6B', stars: 4, review: 'Al principio me costó entender el Price Action, no voy a mentir. Pero David tiene mucha paciencia y el material está muy bien organizado. Le daría 5 estrellas si hubiera más contenido sobre criptos, pero igual lo recomiendo.' },
+  { name: 'Miguel Torres',   country: 'México',   initials: 'MT', color: '#B45FFF', stars: 4, review: 'Tenía conocimientos técnicos pero perdía por mis emociones. El módulo de psicología del trading fue exactamente lo que necesitaba. Hoy opero con una calma y disciplina que antes simplemente no tenía.' },
+  { name: 'Daniela Vargas',  country: 'Colombia', initials: 'DV', color: '#00FF87', stars: 5, review: 'Soy abogada y no tenía ningún conocimiento previo de mercados. El curso me llevó de cero a operar con confianza en 3 meses. David explica todo muy claro y el acompañamiento es real, no solo videos grabados.' },
+]
+
+type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content' | 'seeds'
 
 export default function AdminPage() {
   const [password, setPassword]   = useState('')
@@ -72,6 +83,11 @@ export default function AdminPage() {
   const [contentSaving, setContentSaving] = useState(false)
   const [contentSaved, setContentSaved]   = useState(false)
 
+  const [seeds, setSeeds]           = useState<SeedReview[]>(SEED_DEFAULTS)
+  const [seedsDraft, setSeedsDraft] = useState<SeedReview[]>(SEED_DEFAULTS)
+  const [seedsSaving, setSeedsSaving] = useState(false)
+  const [seedsSaved, setSeedsSaved]   = useState(false)
+
   const fetchReviews = async (pw: string) => {
     setLoading(true); setError('')
     const res = await fetch('/api/admin', { headers: { 'x-admin-password': pw } })
@@ -85,6 +101,9 @@ export default function AdminPage() {
     if (!authed) return
     fetch('/api/content').then(r => r.json()).then((d: SiteContent) => {
       setContent(d); setContentDraft(d)
+    }).catch(() => {})
+    fetch('/api/seed-reviews').then(r => r.json()).then(d => {
+      if (d) { setSeeds(d); setSeedsDraft(d) }
     }).catch(() => {})
   }, [authed])
 
@@ -115,6 +134,19 @@ export default function AdminPage() {
     setReviews(prev => prev.filter(r => r.id !== id))
     setDeleteConfirm(null)
     setBusy(null)
+  }
+
+  const saveSeeds = async () => {
+    setSeedsSaving(true)
+    await fetch('/api/seed-reviews', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+      body: JSON.stringify(seedsDraft),
+    })
+    setSeeds(seedsDraft)
+    setSeedsSaving(false)
+    setSeedsSaved(true)
+    setTimeout(() => setSeedsSaved(false), 2500)
   }
 
   const saveContent = async () => {
@@ -198,7 +230,8 @@ export default function AdminPage() {
             { key: 'all',      label: 'Todas',        count: counts.all },
             { key: 'approved', label: 'Aprobadas',    count: counts.approved },
             { key: 'rejected', label: 'Rechazadas',   count: counts.rejected },
-            { key: 'content',  label: '✦ Contenido',  count: null },
+            { key: 'content',  label: '✦ Contenido',   count: null },
+            { key: 'seeds',    label: '★ Reseñas Fijas', count: null },
           ] as { key: Tab; label: string; count: number | null }[]).map(({ key, label, count }) => (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '8px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
@@ -280,8 +313,58 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ─── TAB RESEÑAS FIJAS ─── */}
+        {tab === 'seeds' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,184,0,0.15)', borderRadius: 16, padding: '20px 24px', marginBottom: 4 }}>
+              <p style={{ fontFamily: 'var(--ff-display)', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Reseñas publicadas en la página</p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>Estas 6 reseñas aparecen siempre en la landing page. Edítalas y guarda los cambios.</p>
+            </div>
+
+            {seedsDraft.map((s, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '22px 24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Nombre</label>
+                    <input value={s.name} onChange={e => setSeedsDraft(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>País</label>
+                    <input value={s.country} onChange={e => setSeedsDraft(d => d.map((x, j) => j === i ? { ...x, country: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Calificación</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[1,2,3,4,5].map(n => (
+                      <button key={n} type="button" onClick={() => setSeedsDraft(d => d.map((x, j) => j === i ? { ...x, stars: n } : x))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill={n <= s.stars ? '#00FF87' : 'rgba(255,255,255,0.12)'} style={{ transition: 'fill 0.15s' }}>
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Reseña</label>
+                  <textarea rows={3} value={s.review} onChange={e => setSeedsDraft(d => d.map((x, j) => j === i ? { ...x, review: e.target.value } : x))}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'rgba(255,255,255,0.7)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65, boxSizing: 'border-box' }} />
+                </div>
+              </div>
+            ))}
+
+            <button onClick={saveSeeds} disabled={seedsSaving}
+              style={{ background: seedsSaved ? 'rgba(0,255,135,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: seedsSaved ? '#00FF87' : '#000', padding: '13px 32px', borderRadius: 10, border: seedsSaved ? '1px solid rgba(0,255,135,0.4)' : 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', width: 'fit-content', transition: 'all 0.3s', opacity: seedsSaving ? 0.6 : 1 }}>
+              {seedsSaving ? 'Guardando...' : seedsSaved ? '✓ Guardado' : 'Guardar reseñas →'}
+            </button>
+          </div>
+        )}
+
         {/* ─── TAB RESEÑAS ─── */}
-        {tab !== 'content' && (
+        {tab !== 'content' && tab !== 'seeds' && (
           <>
             {visible.length === 0 && (
               <div style={{ textAlign: 'center', padding: '80px 20px', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>
