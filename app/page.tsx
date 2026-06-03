@@ -60,7 +60,7 @@ function StarField() {
     window.addEventListener('resize', resize)
 
     const isMobile = window.innerWidth < 768
-    const sparks = Array.from({ length: isMobile ? 22 : 55 }, () => ({
+    const sparks = Array.from({ length: isMobile ? 12 : 28 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       r: Math.random() * 1.1 + 0.15,
@@ -74,7 +74,7 @@ function StarField() {
     type SmokeP = {
       x: number; y: number; vx: number; vy: number
       life: number; decay: number; r: number
-      kind: 0 | 1 | 2
+      kind: 0 | 1
     }
 
     const VX0 = 0.08, VX1 = 0.92
@@ -101,16 +101,14 @@ function StarField() {
         y = canvas.height * (VY0 + Math.random() * (VY1 - VY0))
         vx = spd;  vy = (Math.random() - 0.5) * 0.18
       }
-      const kind = Math.random() < 0.40 ? 0 : Math.random() < 0.55 ? 1 : 2
-      const baseR = kind === 0 ? Math.random() * 0.8 + 0.3
-                  : kind === 1 ? Math.random() * 1.2 + 1.2
-                  :              Math.random() * 2.5 + 2.5
+      const kind: 0 | 1 = Math.random() < 0.5 ? 0 : 1
+      const baseR = kind === 0 ? Math.random() * 0.8 + 0.3 : Math.random() * 1.2 + 1.2
       return { x, y, vx, vy, life: Math.random(), decay: Math.random() * 0.004 + 0.0015, r: baseR, kind }
     }
 
-    const smoke: SmokeP[] = Array.from({ length: isMobile ? 16 : 44 }, spawnSmoke)
+    const smoke: SmokeP[] = Array.from({ length: isMobile ? 8 : 20 }, spawnSmoke)
 
-    const nodes = Array.from({ length: isMobile ? 10 : 24 }, () => ({
+    const nodes = Array.from({ length: isMobile ? 5 : 10 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.4,
@@ -124,7 +122,15 @@ function StarField() {
     const REPEL_DIST   = 45
     const MAX_SPEED    = 0.55
 
-    const draw = () => {
+    // Throttle a 30fps para no saturar el hilo principal
+    const FRAME_MS = 1000 / 30
+    let lastFrame = 0
+
+    const draw = (ts: number) => {
+      animId = requestAnimationFrame(draw)
+      if (ts - lastFrame < FRAME_MS) return
+      lastFrame = ts
+      if (document.hidden) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const t = performance.now() / 1000
 
@@ -198,7 +204,7 @@ function StarField() {
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
           ctx.fillStyle = `rgba(0,255,135,${a})`
           ctx.fill()
-        } else if (p.kind === 1) {
+        } else {
           const a = p.life * 0.55
           ctx.beginPath()
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
@@ -207,13 +213,6 @@ function StarField() {
           ctx.beginPath()
           ctx.arc(p.x, p.y, p.r * 3.5, 0, Math.PI * 2)
           ctx.fillStyle = `rgba(0,255,135,${a * 0.12})`
-          ctx.fill()
-        } else {
-          const a = p.life * 0.13
-          const radius = p.r * (1 + (1 - p.life) * 2.2)
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, radius, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(0,255,135,${a})`
           ctx.fill()
         }
       })
@@ -231,9 +230,8 @@ function StarField() {
         ctx.fill()
       })
 
-      animId = requestAnimationFrame(draw)
     }
-    draw()
+    animId = requestAnimationFrame(draw)
 
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
   }, [])
@@ -602,9 +600,11 @@ export default function Home() {
   const [siteContent, setSiteContent] = useState<SiteContent>(CONTENT_DEFAULTS)
   const [seedOverrides, setSeedOverrides] = useState<any[] | null>(null)
   useEffect(() => {
-    fetch('/api/reviews').then(r => r.json()).then(setDynamicReviews).catch(() => {})
-    fetch('/api/content').then(r => r.json()).then(setSiteContent).catch(() => {})
-    fetch('/api/seed-reviews').then(r => r.json()).then(d => { if (d) setSeedOverrides(d) }).catch(() => {})
+    fetch('/api/page-data').then(r => r.json()).then(d => {
+      if (d.content)    setSiteContent(d.content)
+      if (d.reviews)    setDynamicReviews(d.reviews)
+      if (d.seedReviews) setSeedOverrides(d.seedReviews)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
