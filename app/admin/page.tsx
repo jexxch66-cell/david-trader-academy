@@ -291,11 +291,11 @@ export default function AdminPage() {
             { key: 'all',      label: 'Todas',        count: counts.all },
             { key: 'approved', label: 'Aprobadas',    count: counts.approved },
             { key: 'rejected', label: 'Rechazadas',   count: counts.rejected },
-            { key: 'content',  label: '✦ Contenido',   count: null },
-            { key: 'seeds',    label: '★ Reseñas Fijas', count: null },
-            { key: 'benefits', label: '💎 Beneficios',     count: null },
-            { key: 'modules',  label: '📚 Módulos',        count: null },
-            { key: 'security', label: '🔒 Seguridad',      count: null },
+            { key: 'content',  label: 'Contenido',    count: null },
+            { key: 'seeds',    label: 'Reseñas Fijas', count: null },
+            { key: 'benefits', label: 'Beneficios',    count: null },
+            { key: 'modules',  label: 'Módulos',       count: null },
+            { key: 'security', label: 'Seguridad',     count: null },
           ] as { key: Tab; label: string; count: number | null }[]).map(({ key, label, count }) => (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '8px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
@@ -386,7 +386,7 @@ export default function AdminPage() {
             </div>
             {benefitsDraft.map((b, i) => (
               <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 12, marginBottom: 12 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Ícono</label>
                     <input value={b.icon} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, icon: e.target.value } : x))}
@@ -399,8 +399,8 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Descripción</label>
-                    <input value={b.sub} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, sub: e.target.value } : x))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'rgba(255,255,255,0.6)', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    <textarea rows={3} value={b.sub} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, sub: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'rgba(255,255,255,0.6)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65, boxSizing: 'border-box' }} />
                   </div>
                 </div>
               </div>
