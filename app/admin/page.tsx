@@ -64,7 +64,7 @@ const SEED_DEFAULTS: SeedReview[] = [
   { name: 'Daniela Vargas',  country: 'Colombia', initials: 'DV', color: '#00FF87', stars: 5, review: 'Soy abogada y no tenía ningún conocimiento previo de mercados. El curso me llevó de cero a operar con confianza en 3 meses. David explica todo muy claro y el acompañamiento es real, no solo videos grabados.' },
 ]
 
-type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content' | 'seeds' | 'banner'
+type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content' | 'seeds' | 'security'
 
 export default function AdminPage() {
   const [password, setPassword]   = useState('')
@@ -83,10 +83,9 @@ export default function AdminPage() {
   const [contentSaving, setContentSaving] = useState(false)
   const [contentSaved, setContentSaved]   = useState(false)
 
-  type BannerData = { active: boolean; message: string; endDate: string; badge: string }
-  const [banner, setBanner]         = useState<BannerData>({ active: false, message: '🔥 Oferta de lanzamiento — Solo por tiempo limitado', endDate: '', badge: 'Precio especial' })
-  const [bannerSaving, setBannerSaving] = useState(false)
-  const [bannerSaved, setBannerSaved]   = useState(false)
+  const [newPw, setNewPw]           = useState('')
+  const [confirmPw, setConfirmPw]   = useState('')
+  const [pwStatus, setPwStatus]     = useState<'idle'|'saving'|'ok'|'error'>('idle')
 
   const [seeds, setSeeds]           = useState<SeedReview[]>(SEED_DEFAULTS)
   const [seedsDraft, setSeedsDraft] = useState<SeedReview[]>(SEED_DEFAULTS)
@@ -110,7 +109,6 @@ export default function AdminPage() {
     fetch('/api/seed-reviews').then(r => r.json()).then(d => {
       if (d) { setSeeds(d); setSeedsDraft(d) }
     }).catch(() => {})
-    fetch('/api/banner').then(r => r.json()).then(d => { if (d) setBanner(d) }).catch(() => {})
   }, [authed])
 
   const updateReview = async (id: string, payload: { status?: 'approved' | 'rejected'; review?: string }) => {
@@ -142,17 +140,22 @@ export default function AdminPage() {
     setBusy(null)
   }
 
-  const saveBanner = async (data: typeof banner) => {
-    setBannerSaving(true)
-    await fetch('/api/banner', {
-      method: 'PATCH',
+  const changePassword = async () => {
+    if (newPw.length < 6) { setPwStatus('error'); return }
+    if (newPw !== confirmPw) { setPwStatus('error'); return }
+    setPwStatus('saving')
+    const res = await fetch('/api/change-password', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ newPassword: newPw }),
     })
-    setBanner(data)
-    setBannerSaving(false)
-    setBannerSaved(true)
-    setTimeout(() => setBannerSaved(false), 2500)
+    if (res.ok) {
+      setPwStatus('ok')
+      setNewPw(''); setConfirmPw('')
+      setTimeout(() => setPwStatus('idle'), 3000)
+    } else {
+      setPwStatus('error')
+    }
   }
 
   const saveSeeds = async () => {
@@ -251,7 +254,7 @@ export default function AdminPage() {
             { key: 'rejected', label: 'Rechazadas',   count: counts.rejected },
             { key: 'content',  label: '✦ Contenido',   count: null },
             { key: 'seeds',    label: '★ Reseñas Fijas', count: null },
-            { key: 'banner',   label: '🔥 Banner Oferta', count: null },
+            { key: 'security', label: '🔒 Seguridad',      count: null },
           ] as { key: Tab; label: string; count: number | null }[]).map(({ key, label, count }) => (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '8px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
@@ -333,61 +336,36 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ─── TAB BANNER ─── */}
-        {tab === 'banner' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Toggle ON/OFF */}
-            <div style={{ background: banner.active ? 'rgba(0,255,135,0.06)' : 'rgba(255,255,255,0.025)', border: `1px solid ${banner.active ? 'rgba(0,255,135,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 16, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <div>
-                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
-                  {banner.active ? '🟢 Banner activo' : '⚫ Banner inactivo'}
-                </p>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                  {banner.active ? 'El banner de oferta está visible en la landing page.' : 'El banner está oculto. Actívalo para mostrar la oferta.'}
-                </p>
-              </div>
-              <button onClick={() => saveBanner({ ...banner, active: !banner.active })}
-                style={{ padding: '11px 28px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'var(--ff-display)', fontWeight: 800, fontSize: 14, letterSpacing: '0.05em', background: banner.active ? 'rgba(255,107,107,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: banner.active ? '#FF6B6B' : '#000', transition: 'all 0.2s' }}>
-                {banner.active ? 'Desactivar' : 'Activar banner'}
-              </button>
-            </div>
-
-            {/* Mensaje */}
-            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '24px' }}>
-              <p style={{ fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Configurar banner</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* ─── TAB SEGURIDAD ─── */}
+        {tab === 'security' && (
+          <div style={{ maxWidth: 480 }}>
+            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '28px 28px' }}>
+              <p style={{ fontFamily: 'var(--ff-display)', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Cambiar contraseña</p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 24, lineHeight: 1.6 }}>La nueva contraseña se usará la próxima vez que inicies sesión.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Badge (texto pequeño)</label>
-                  <input value={banner.badge} onChange={e => setBanner(b => ({ ...b, badge: e.target.value }))}
-                    placeholder="Precio especial"
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Nueva contraseña</label>
+                  <input type="password" value={newPw} onChange={e => { setNewPw(e.target.value); setPwStatus('idle') }}
+                    placeholder="Mínimo 6 caracteres"
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${pwStatus === 'error' ? 'rgba(255,107,107,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, padding: '12px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Mensaje principal</label>
-                  <input value={banner.message} onChange={e => setBanner(b => ({ ...b, message: e.target.value }))}
-                    placeholder="🔥 Oferta de lanzamiento — Solo por tiempo limitado"
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Confirmar contraseña</label>
+                  <input type="password" value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setPwStatus('idle') }}
+                    placeholder="Repite la contraseña"
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${pwStatus === 'error' ? 'rgba(255,107,107,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, padding: '12px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Fecha y hora de vencimiento</label>
-                  <input type="datetime-local" value={banner.endDate} onChange={e => setBanner(b => ({ ...b, endDate: e.target.value }))}
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: 'white', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', colorScheme: 'dark' }} />
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 6 }}>El banner desaparece automáticamente cuando llega a cero.</p>
-                </div>
-
-                {/* Preview */}
-                {banner.endDate && (
-                  <div style={{ background: 'linear-gradient(90deg,#00FF87,#00D96A)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    <span style={{ background: 'rgba(0,0,0,0.12)', borderRadius: 100, padding: '3px 12px', fontSize: 11, fontWeight: 700, color: '#000', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{banner.badge}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{banner.message}</span>
-                    <span style={{ background: 'rgba(255,255,255,0.35)', borderRadius: 8, padding: '4px 12px', fontSize: 13, fontWeight: 800, color: '#000', fontFamily: 'var(--ff-display)' }}>00 : 00 : 00</span>
-                    <span style={{ background: '#000', color: '#00FF87', padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em' }}>APROVECHAR →</span>
-                  </div>
+                {pwStatus === 'error' && (
+                  <p style={{ fontSize: 12, color: '#FF6B6B' }}>
+                    {newPw.length < 6 ? 'Mínimo 6 caracteres.' : 'Las contraseñas no coinciden.'}
+                  </p>
                 )}
-
-                <button onClick={() => saveBanner(banner)} disabled={bannerSaving}
-                  style={{ background: bannerSaved ? 'rgba(0,255,135,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: bannerSaved ? '#00FF87' : '#000', padding: '13px 32px', borderRadius: 10, border: bannerSaved ? '1px solid rgba(0,255,135,0.4)' : 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', width: 'fit-content', opacity: bannerSaving ? 0.6 : 1, transition: 'all 0.3s' }}>
-                  {bannerSaving ? 'Guardando...' : bannerSaved ? '✓ Guardado' : 'Guardar banner →'}
+                {pwStatus === 'ok' && (
+                  <p style={{ fontSize: 12, color: '#00FF87' }}>✓ Contraseña actualizada correctamente.</p>
+                )}
+                <button onClick={changePassword} disabled={pwStatus === 'saving' || !newPw || !confirmPw}
+                  style={{ background: pwStatus === 'ok' ? 'rgba(0,255,135,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: pwStatus === 'ok' ? '#00FF87' : '#000', padding: '13px', borderRadius: 10, border: pwStatus === 'ok' ? '1px solid rgba(0,255,135,0.4)' : 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', opacity: (pwStatus === 'saving' || !newPw || !confirmPw) ? 0.5 : 1, transition: 'all 0.3s' }}>
+                  {pwStatus === 'saving' ? 'Guardando...' : pwStatus === 'ok' ? '✓ Actualizada' : 'Cambiar contraseña →'}
                 </button>
               </div>
             </div>
@@ -445,7 +423,7 @@ export default function AdminPage() {
         )}
 
         {/* ─── TAB RESEÑAS ─── */}
-        {tab !== 'content' && tab !== 'seeds' && tab !== 'banner' && (
+        {tab !== 'content' && tab !== 'seeds' && tab !== 'security' && (
           <>
             {visible.length === 0 && (
               <div style={{ textAlign: 'center', padding: '80px 20px', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>

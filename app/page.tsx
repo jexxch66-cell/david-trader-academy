@@ -586,13 +586,10 @@ export default function Home() {
   const [dynamicReviews, setDynamicReviews] = useState<any[]>([])
   const [siteContent, setSiteContent] = useState<SiteContent>(CONTENT_DEFAULTS)
   const [seedOverrides, setSeedOverrides] = useState<any[] | null>(null)
-  const [banner, setBanner] = useState<BannerData | null>(null)
-
   useEffect(() => {
     fetch('/api/reviews').then(r => r.json()).then(setDynamicReviews).catch(() => {})
     fetch('/api/content').then(r => r.json()).then(setSiteContent).catch(() => {})
     fetch('/api/seed-reviews').then(r => r.json()).then(d => { if (d) setSeedOverrides(d) }).catch(() => {})
-    fetch('/api/banner').then(r => r.json()).then(setBanner).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -661,11 +658,6 @@ export default function Home() {
         .module-card:hover { border-color: rgba(0,255,135,0.28) !important; background: rgba(0,255,135,0.035) !important; box-shadow: inset 3px 0 0 0 rgba(0,255,135,0.55), 0 8px 40px rgba(0,255,135,0.06) !important; }
         .benefit-card:hover { border-color: rgba(0,255,135,0.28) !important; box-shadow: inset 0 3px 0 0 rgba(0,255,135,0.55), 0 8px 30px rgba(0,255,135,0.07) !important; background: rgba(0,255,135,0.04) !important; }
       `}</style>
-
-      {/* BANNER */}
-      {banner?.active && banner.endDate && (
-        <CountdownBanner message={banner.message} endDate={banner.endDate} badge={banner.badge} />
-      )}
 
       {/* NAV */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 10, background: navSolid ? 'rgba(6,6,6,0.96)' : 'transparent', backdropFilter: navSolid ? 'blur(16px)' : 'none', borderBottom: navSolid ? '1px solid rgba(255,255,255,0.06)' : 'none', transition: 'all 0.4s' }}>

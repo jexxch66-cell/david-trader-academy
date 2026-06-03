@@ -12,12 +12,15 @@ async function kv(commands: unknown[][]) {
   return res.json()
 }
 
-function auth(req: NextRequest) {
-  return req.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD
+async function auth(req: NextRequest) {
+  const pw = req.headers.get('x-admin-password')
+  const stored = await kv([['GET', 'site:admin_pw']])
+  const valid = stored?.[0]?.result || process.env.ADMIN_PASSWORD || ''
+  return pw === valid
 }
 
 export async function GET(req: NextRequest) {
-  if (!auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const res = await kv([['LRANGE', 'review_ids', 0, -1]])
   if (!res) return NextResponse.json([])
@@ -33,7 +36,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id, status, review: reviewText } = await req.json()
   const res = await kv([['GET', `review:${id}`]])
@@ -47,7 +50,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await auth(req)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await req.json()
   await kv([
