@@ -276,6 +276,7 @@ export default function AdminPage() {
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(6,6,6,0.95)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,255,135,0.1)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <TradingIcon />
         <span style={{ fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Panel Admin</span>
+        <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontFamily: 'var(--ff-display)', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>David Trader Academy</span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
           <span style={{ fontSize: 12, color: '#FFB800' }}>⏳ {counts.pending}</span>
           <span style={{ fontSize: 12, color: '#00FF87' }}>✓ {counts.approved}</span>
