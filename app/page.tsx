@@ -574,12 +574,27 @@ function CountdownBanner({ message, endDate, badge }: { message: string; endDate
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
-type SiteContent = { price: string; headline1: string; headline2: string; subtitle: string }
+type Benefit = { icon: string; title: string; sub: string }
+type Module  = { num: string; title: string; desc: string }
+type SiteContent = { price: string; headline1: string; headline2: string; subtitle: string; benefits: Benefit[]; modules: Module[] }
 const CONTENT_DEFAULTS: SiteContent = {
   price: '199', headline1: 'Opera los mercados', headline2: 'con método real',
   subtitle: 'Aprende a operar los mercados financieros con estrategia, disciplina y gestión profesional del riesgo, incluso si empiezas desde cero.',
+  benefits: [
+    { icon: '📈', title: '6 años de experiencia',  sub: 'Trader profesional especializado en Forex, divisas y oro' },
+    { icon: '🛡️', title: 'Gestión de riesgo',      sub: 'Protege tu capital con metodología disciplinada y probada' },
+    { icon: '🎯', title: 'Price Action real',       sub: 'Lee el mercado como los traders institucionales' },
+    { icon: '🔴', title: 'Sesiones en vivo',        sub: 'Acompañamiento real con análisis del mercado en tiempo real' },
+  ],
+  modules: [
+    { num: '01', title: 'Fundamentos del Trading Profesional',    desc: 'Introducción completa al mundo del trading, conceptos esenciales, funcionamiento del mercado Forex, pares de divisas, sesiones de mercado y mentalidad correcta para iniciar.' },
+    { num: '02', title: 'Price Action y Lectura del Mercado',      desc: 'Aprende a interpretar gráficos como un trader profesional, identificar estructuras del mercado, zonas clave, soportes, resistencias y movimientos institucionales.' },
+    { num: '03', title: 'Trading en Oro (XAU/USD) y Divisas',     desc: 'Estrategias específicas para operar oro y pares de divisas con alta precisión, entendiendo comportamiento, volatilidad y mejores oportunidades de entrada.' },
+    { num: '04', title: 'Gestión de Riesgo Profesional',          desc: 'Uno de los pilares más importantes del curso. Aprende a proteger capital, calcular lotajes, controlar pérdidas y operar con disciplina.' },
+    { num: '05', title: 'Psicología del Trading y Control Emocional', desc: 'Acompañamiento psicológico enfocado en mentalidad, control emocional, toma de decisiones, manejo del miedo, ansiedad y sobreoperación.' },
+    { num: '06', title: 'Trading en Vivo + Ejecución Real',       desc: 'Sesiones en vivo con análisis del mercado en tiempo real, explicación de entradas, salidas y toma de decisiones reales.' },
+  ],
 }
-type BannerData = { active: boolean; message: string; endDate: string; badge: string }
 
 export default function Home() {
   const [navSolid, setNavSolid] = useState(false)
@@ -598,45 +613,8 @@ export default function Home() {
     return () => window.removeEventListener('scroll', h)
   }, [])
 
-  const BENEFITS = [
-    { icon: '📈', title: '6 años de experiencia',  sub: 'Trader profesional especializado en Forex, divisas y oro' },
-    { icon: '🛡️', title: 'Gestión de riesgo',      sub: 'Protege tu capital con metodología disciplinada y probada' },
-    { icon: '🎯', title: 'Price Action real',       sub: 'Lee el mercado como los traders institucionales' },
-    { icon: '🔴', title: 'Sesiones en vivo',        sub: 'Acompañamiento real con análisis del mercado en tiempo real' },
-  ]
-
-  const MODULES = [
-    {
-      num: '01',
-      title: 'Fundamentos del Trading Profesional',
-      desc: 'Introducción completa al mundo del trading, conceptos esenciales, funcionamiento del mercado Forex, pares de divisas, sesiones de mercado y mentalidad correcta para iniciar.',
-    },
-    {
-      num: '02',
-      title: 'Price Action y Lectura del Mercado',
-      desc: 'Aprende a interpretar gráficos como un trader profesional, identificar estructuras del mercado, zonas clave, soportes, resistencias y movimientos institucionales.',
-    },
-    {
-      num: '03',
-      title: 'Trading en Oro (XAU/USD) y Divisas',
-      desc: 'Estrategias específicas para operar oro y pares de divisas con alta precisión, entendiendo comportamiento, volatilidad y mejores oportunidades de entrada.',
-    },
-    {
-      num: '04',
-      title: 'Gestión de Riesgo Profesional',
-      desc: 'Uno de los pilares más importantes del curso. Aprende a proteger capital, calcular lotajes, controlar pérdidas y operar con disciplina.',
-    },
-    {
-      num: '05',
-      title: 'Psicología del Trading y Control Emocional',
-      desc: 'Acompañamiento psicológico enfocado en mentalidad, control emocional, toma de decisiones, manejo del miedo, ansiedad y sobreoperación.',
-    },
-    {
-      num: '06',
-      title: 'Trading en Vivo + Ejecución Real',
-      desc: 'Sesiones en vivo con análisis del mercado en tiempo real, explicación de entradas, salidas y toma de decisiones reales.',
-    },
-  ]
+  const BENEFITS = siteContent.benefits
+  const MODULES  = siteContent.modules
 
   return (
     <>

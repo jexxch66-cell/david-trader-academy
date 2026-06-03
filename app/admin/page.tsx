@@ -64,7 +64,9 @@ const SEED_DEFAULTS: SeedReview[] = [
   { name: 'Daniela Vargas',  country: 'Colombia', initials: 'DV', color: '#00FF87', stars: 5, review: 'Soy abogada y no tenía ningún conocimiento previo de mercados. El curso me llevó de cero a operar con confianza en 3 meses. David explica todo muy claro y el acompañamiento es real, no solo videos grabados.' },
 ]
 
-type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content' | 'seeds' | 'security'
+type Benefit = { icon: string; title: string; sub: string }
+type Module  = { num: string; title: string; desc: string }
+type Tab = 'pending' | 'approved' | 'rejected' | 'all' | 'content' | 'seeds' | 'benefits' | 'modules' | 'security'
 
 export default function AdminPage() {
   const [password, setPassword]   = useState('')
@@ -82,6 +84,27 @@ export default function AdminPage() {
   const [contentDraft, setContentDraft] = useState<SiteContent>(DEFAULTS)
   const [contentSaving, setContentSaving] = useState(false)
   const [contentSaved, setContentSaved]   = useState(false)
+
+  const DEFAULT_BENEFITS: Benefit[] = [
+    { icon: '📈', title: '6 años de experiencia',  sub: 'Trader profesional especializado en Forex, divisas y oro' },
+    { icon: '🛡️', title: 'Gestión de riesgo',      sub: 'Protege tu capital con metodología disciplinada y probada' },
+    { icon: '🎯', title: 'Price Action real',       sub: 'Lee el mercado como los traders institucionales' },
+    { icon: '🔴', title: 'Sesiones en vivo',        sub: 'Acompañamiento real con análisis del mercado en tiempo real' },
+  ]
+  const DEFAULT_MODULES: Module[] = [
+    { num: '01', title: 'Fundamentos del Trading Profesional',    desc: 'Introducción completa al mundo del trading, conceptos esenciales, funcionamiento del mercado Forex, pares de divisas, sesiones de mercado y mentalidad correcta para iniciar.' },
+    { num: '02', title: 'Price Action y Lectura del Mercado',      desc: 'Aprende a interpretar gráficos como un trader profesional, identificar estructuras del mercado, zonas clave, soportes, resistencias y movimientos institucionales.' },
+    { num: '03', title: 'Trading en Oro (XAU/USD) y Divisas',     desc: 'Estrategias específicas para operar oro y pares de divisas con alta precisión, entendiendo comportamiento, volatilidad y mejores oportunidades de entrada.' },
+    { num: '04', title: 'Gestión de Riesgo Profesional',          desc: 'Uno de los pilares más importantes del curso. Aprende a proteger capital, calcular lotajes, controlar pérdidas y operar con disciplina.' },
+    { num: '05', title: 'Psicología del Trading y Control Emocional', desc: 'Acompañamiento psicológico enfocado en mentalidad, control emocional, toma de decisiones, manejo del miedo, ansiedad y sobreoperación.' },
+    { num: '06', title: 'Trading en Vivo + Ejecución Real',       desc: 'Sesiones en vivo con análisis del mercado en tiempo real, explicación de entradas, salidas y toma de decisiones reales.' },
+  ]
+  const [benefitsDraft, setBenefitsDraft] = useState<Benefit[]>(DEFAULT_BENEFITS)
+  const [benefitsSaving, setBenefitsSaving] = useState(false)
+  const [benefitsSaved, setBenefitsSaved]   = useState(false)
+  const [modulesDraft, setModulesDraft] = useState<Module[]>(DEFAULT_MODULES)
+  const [modulesSaving, setModulesSaving] = useState(false)
+  const [modulesSaved, setModulesSaved]   = useState(false)
 
   const [newPw, setNewPw]           = useState('')
   const [confirmPw, setConfirmPw]   = useState('')
@@ -105,6 +128,11 @@ export default function AdminPage() {
     if (!authed) return
     fetch('/api/content').then(r => r.json()).then((d: SiteContent) => {
       setContent(d); setContentDraft(d)
+    }).catch(() => {})
+    fetch('/api/content').then(r => r.json()).then((d: any) => {
+      if (d.benefits) setBenefitsDraft(d.benefits)
+      if (d.modules)  setModulesDraft(d.modules)
+      if (d.price) setContentDraft(prev => ({ ...prev, price: d.price, headline1: d.headline1, headline2: d.headline2, subtitle: d.subtitle }))
     }).catch(() => {})
     fetch('/api/seed-reviews').then(r => r.json()).then(d => {
       if (d) { setSeeds(d); setSeedsDraft(d) }
@@ -138,6 +166,17 @@ export default function AdminPage() {
     setReviews(prev => prev.filter(r => r.id !== id))
     setDeleteConfirm(null)
     setBusy(null)
+  }
+
+  const saveBenefits = async () => {
+    setBenefitsSaving(true)
+    await fetch('/api/content', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-password': password }, body: JSON.stringify({ benefits: benefitsDraft }) })
+    setBenefitsSaving(false); setBenefitsSaved(true); setTimeout(() => setBenefitsSaved(false), 2500)
+  }
+  const saveModules = async () => {
+    setModulesSaving(true)
+    await fetch('/api/content', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-admin-password': password }, body: JSON.stringify({ modules: modulesDraft }) })
+    setModulesSaving(false); setModulesSaved(true); setTimeout(() => setModulesSaved(false), 2500)
   }
 
   const changePassword = async () => {
@@ -254,6 +293,8 @@ export default function AdminPage() {
             { key: 'rejected', label: 'Rechazadas',   count: counts.rejected },
             { key: 'content',  label: '✦ Contenido',   count: null },
             { key: 'seeds',    label: '★ Reseñas Fijas', count: null },
+            { key: 'benefits', label: '💎 Beneficios',     count: null },
+            { key: 'modules',  label: '📚 Módulos',        count: null },
             { key: 'security', label: '🔒 Seguridad',      count: null },
           ] as { key: Tab; label: string; count: number | null }[]).map(({ key, label, count }) => (
             <button key={key} onClick={() => setTab(key)} style={{
@@ -333,6 +374,74 @@ export default function AdminPage() {
                 {contentSaving ? 'Guardando...' : contentSaved ? '✓ Guardado' : 'Guardar cambios →'}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ─── TAB BENEFICIOS ─── */}
+        {tab === 'benefits' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '18px 22px', marginBottom: 4 }}>
+              <p style={{ fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Lo que obtienes</p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Edita los 4 beneficios que aparecen en la sección "Todo en un solo sistema".</p>
+            </div>
+            {benefitsDraft.map((b, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Ícono</label>
+                    <input value={b.icon} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, icon: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 10px', color: 'white', fontSize: 18, outline: 'none', boxSizing: 'border-box', textAlign: 'center' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Título</label>
+                    <input value={b.title} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, title: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Descripción</label>
+                    <input value={b.sub} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, sub: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'rgba(255,255,255,0.6)', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button onClick={saveBenefits} disabled={benefitsSaving}
+              style={{ background: benefitsSaved ? 'rgba(0,255,135,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: benefitsSaved ? '#00FF87' : '#000', padding: '13px 32px', borderRadius: 10, border: benefitsSaved ? '1px solid rgba(0,255,135,0.4)' : 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', width: 'fit-content', opacity: benefitsSaving ? 0.6 : 1, transition: 'all 0.3s' }}>
+              {benefitsSaving ? 'Guardando...' : benefitsSaved ? '✓ Guardado' : 'Guardar beneficios →'}
+            </button>
+          </div>
+        )}
+
+        {/* ─── TAB MÓDULOS ─── */}
+        {tab === 'modules' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '18px 22px', marginBottom: 4 }}>
+              <p style={{ fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>6 módulos del programa</p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Edita el título y descripción de cada módulo. El número no se puede cambiar.</p>
+            </div>
+            {modulesDraft.map((m, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px', display: 'grid', gridTemplateColumns: '48px 1fr', gap: '0 18px', alignItems: 'start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 28 }}>
+                  <span style={{ fontFamily: 'var(--ff-display)', fontSize: 11, fontWeight: 800, color: 'var(--green)', border: '1px solid rgba(0,255,135,0.25)', borderRadius: 6, padding: '4px 8px', background: 'rgba(0,255,135,0.06)' }}>{m.num}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Título</label>
+                    <input value={m.title} onChange={e => setModulesDraft(d => d.map((x, j) => j === i ? { ...x, title: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 14, fontWeight: 600, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Descripción</label>
+                    <textarea rows={3} value={m.desc} onChange={e => setModulesDraft(d => d.map((x, j) => j === i ? { ...x, desc: e.target.value } : x))}
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'rgba(255,255,255,0.6)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65, boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button onClick={saveModules} disabled={modulesSaving}
+              style={{ background: modulesSaved ? 'rgba(0,255,135,0.15)' : 'linear-gradient(135deg,#00FF87,#00D96A)', color: modulesSaved ? '#00FF87' : '#000', padding: '13px 32px', borderRadius: 10, border: modulesSaved ? '1px solid rgba(0,255,135,0.4)' : 'none', fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 800, letterSpacing: '0.05em', cursor: 'pointer', width: 'fit-content', opacity: modulesSaving ? 0.6 : 1, transition: 'all 0.3s' }}>
+              {modulesSaving ? 'Guardando...' : modulesSaved ? '✓ Guardado' : 'Guardar módulos →'}
+            </button>
           </div>
         )}
 
@@ -423,7 +532,7 @@ export default function AdminPage() {
         )}
 
         {/* ─── TAB RESEÑAS ─── */}
-        {tab !== 'content' && tab !== 'seeds' && tab !== 'security' && (
+        {tab !== 'content' && tab !== 'seeds' && tab !== 'security' && tab !== 'benefits' && tab !== 'modules' && (
           <>
             {visible.length === 0 && (
               <div style={{ textAlign: 'center', padding: '80px 20px', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>
