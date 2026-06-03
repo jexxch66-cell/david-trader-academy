@@ -385,23 +385,25 @@ export default function AdminPage() {
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Edita los 4 beneficios que aparecen en la sección "Todo en un solo sistema".</p>
             </div>
             {benefitsDraft.map((b, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 12, marginBottom: 12 }}>
+              <div key={i} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Fila 1: Ícono + Título */}
+                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Ícono</label>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Ícono</label>
                     <input value={b.icon} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, icon: e.target.value } : x))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 10px', color: 'white', fontSize: 18, outline: 'none', boxSizing: 'border-box', textAlign: 'center' }} />
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px', color: 'white', fontSize: 22, outline: 'none', boxSizing: 'border-box', textAlign: 'center' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Título</label>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Título</label>
                     <input value={b.title} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, title: e.target.value } : x))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'white', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px', color: 'white', fontSize: 14, fontWeight: 600, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Descripción</label>
-                    <textarea rows={3} value={b.sub} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, sub: e.target.value } : x))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: 'rgba(255,255,255,0.6)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65, boxSizing: 'border-box' }} />
-                  </div>
+                </div>
+                {/* Fila 2: Descripción full width */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Descripción</label>
+                  <textarea rows={3} value={b.sub} onChange={e => setBenefitsDraft(d => d.map((x, j) => j === i ? { ...x, sub: e.target.value } : x))}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px', color: 'rgba(255,255,255,0.65)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.7, boxSizing: 'border-box' }} />
                 </div>
               </div>
             ))}
